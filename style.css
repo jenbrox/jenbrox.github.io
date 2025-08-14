@@ -54,4 +54,17 @@ h1 {
     border-bottom: 1px solid white;
 }
 
+.home-link {
+  position: fixed;       /* stays in place even when scrolling */
+  top: 15px;             /* space from top edge */
+  left: 20px;            /* space from left edge */
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #ffffff;        /* white text */
+  text-decoration: none;
+  z-index: 1000;         /* on top of other elements */
+}
 
+.home-link:hover {
+  text-decoration: underline;
+}
