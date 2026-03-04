@@ -1,0 +1,32 @@
+/* ===================================================
+   EXPENSE TRACKER — CHART STYLES
+   Chart.js requires explicit container heights.
+   maintainAspectRatio: false is set in JS so the
+   canvas fills its wrapper completely.
+   =================================================== */
+
+.chart-wrapper {
+  position: relative;
+  height: 280px;
+}
+
+.chart-wrapper--tall {
+  height: 240px;
+}
+
+/* On larger screens, give the full-width trend chart more room */
+@media (min-width: 768px) {
+  .chart-wrapper--tall {
+    height: 280px;
+  }
+}
+
+/* On small screens, reduce heights so charts don't dominate */
+@media (max-width: 480px) {
+  .chart-wrapper {
+    height: 220px;
+  }
+  .chart-wrapper--tall {
+    height: 200px;
+  }
+}

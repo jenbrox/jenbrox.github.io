@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense Tracker</title>
+  <link rel="stylesheet" href="./css/main.css">
+  <link rel="stylesheet" href="./css/components.css">
+  <link rel="stylesheet" href="./css/charts.css">
+</head>
+<body>
+
+  <!-- ===== HEADER / NAV ===== -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="app-logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="2" y="5" width="20" height="14" rx="3" fill="var(--color-primary)"/>
+          <path d="M2 10h20" stroke="white" stroke-width="1.5"/>
+          <rect x="5" y="13" width="4" height="2" rx="1" fill="white" opacity=".7"/>
+        </svg>
+        <span>Expense Tracker</span>
+      </div>
+      <nav class="app-nav" role="navigation" aria-label="Main navigation">
+        <a href="#dashboard" class="nav-link active" data-nav="dashboard">Dashboard</a>
+        <a href="#transactions" class="nav-link" data-nav="transactions">Transactions</a>
+        <a href="#categories" class="nav-link" data-nav="categories">Categories</a>
+        <a href="#settings" class="nav-link" data-nav="settings">Settings</a>
+      </nav>
+      <button class="btn btn-primary" id="btn-add-transaction" aria-label="Add new transaction">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Add Transaction
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="app-main">
+
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="section" aria-label="Dashboard">
+      <div class="section-header">
+        <h1 class="section-title">Dashboard</h1>
+        <div class="month-nav" role="group" aria-label="Month navigation">
+          <button class="btn btn-ghost btn-icon" id="dash-prev-month" aria-label="Previous month">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <span class="month-label" id="dash-month-label">March 2026</span>
+          <button class="btn btn-ghost btn-icon" id="dash-next-month" aria-label="Next month">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="stats-grid">
+        <div class="stat-card stat-card--income">
+          <div class="stat-label">Monthly Income</div>
+          <div class="stat-value" id="stat-income">$0.00</div>
+          <div class="stat-sub" id="stat-income-count">0 transactions</div>
+        </div>
+        <div class="stat-card stat-card--expense">
+          <div class="stat-label">Monthly Expenses</div>
+          <div class="stat-value" id="stat-expenses">$0.00</div>
+          <div class="stat-sub" id="stat-expenses-count">0 transactions</div>
+        </div>
+        <div class="stat-card stat-card--net">
+          <div class="stat-label">Net Balance</div>
+          <div class="stat-value" id="stat-net">$0.00</div>
+          <div class="stat-sub" id="stat-net-label">Income minus expenses</div>
+        </div>
+        <div class="stat-card stat-card--budget">
+          <div class="stat-label">Remaining Budget</div>
+          <div class="stat-value" id="stat-remaining">—</div>
+          <div class="stat-sub" id="stat-budget-label">No budget set</div>
+        </div>
+      </div>
+
+      <!-- Charts Grid -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-card__header">
+            <h2 class="chart-title">Category Spending</h2>
+            <span class="chart-subtitle" id="pie-month-label"></span>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-category-pie" aria-label="Category spending doughnut chart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card__header">
+            <h2 class="chart-title">Budget vs Actual</h2>
+            <span class="chart-subtitle" id="bar-month-label"></span>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-budget-bar" aria-label="Budget vs actual bar chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card chart-card--full">
+        <div class="chart-card__header">
+          <h2 class="chart-title">Monthly Spending Trend</h2>
+          <span class="chart-subtitle">Last 6 months</span>
+        </div>
+        <div class="chart-wrapper chart-wrapper--tall">
+          <canvas id="chart-trend-line" aria-label="Monthly spending trend line chart"></canvas>
+        </div>
+      </div>
+
+      <!-- Category budget warnings -->
+      <div id="budget-warnings" class="budget-warnings" aria-live="polite"></div>
+    </section>
+
+    <!-- TRANSACTIONS -->
+    <section id="transactions" class="section" hidden aria-label="Transactions">
+      <div class="section-header">
+        <h1 class="section-title">Transactions</h1>
+        <div class="month-nav" role="group" aria-label="Month navigation">
+          <button class="btn btn-ghost btn-icon" id="txn-prev-month" aria-label="Previous month">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <span class="month-label" id="txn-month-label">March 2026</span>
+          <button class="btn btn-ghost btn-icon" id="txn-next-month" aria-label="Next month">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-bar">
+        <div class="filter-group" role="group" aria-label="Filter by type">
+          <button class="filter-btn active" data-type-filter="all">All</button>
+          <button class="filter-btn" data-type-filter="income">Income</button>
+          <button class="filter-btn" data-type-filter="expense">Expense</button>
+        </div>
+        <div class="filter-select-wrap">
+          <label for="filter-category" class="sr-only">Filter by category</label>
+          <select class="select" id="filter-category" aria-label="Filter by category">
+            <option value="all">All categories</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Transaction Table -->
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="table" aria-label="Transactions list">
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Type</th>
+                <th scope="col">Category</th>
+                <th scope="col" class="col-desc">Description</th>
+                <th scope="col" class="col-amount">Amount</th>
+                <th scope="col" class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="transaction-tbody">
+              <tr class="empty-row">
+                <td colspan="6">No transactions for this month. Add one to get started!</td>
+              </tr>
+            </tbody>
+            <tfoot id="transaction-tfoot" hidden>
+              <tr>
+                <td colspan="3"></td>
+                <td class="col-desc tfoot-label">Totals</td>
+                <td class="col-amount" id="tfoot-totals"></td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- CATEGORIES -->
+    <section id="categories" class="section" hidden aria-label="Categories">
+      <div class="section-header">
+        <h1 class="section-title">Categories</h1>
+        <button class="btn btn-primary" id="btn-add-category">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          Add Category
+        </button>
+      </div>
+      <div class="categories-grid" id="categories-grid">
+        <p class="empty-state">No categories yet.</p>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="settings" class="section" hidden aria-label="Settings">
+      <div class="section-header">
+        <h1 class="section-title">Settings</h1>
+      </div>
+
+      <div class="settings-layout">
+        <div class="settings-card">
+          <h2 class="settings-card__title">Budget & Display</h2>
+          <form id="settings-form" novalidate>
+            <div class="form-group">
+              <label class="form-label" for="setting-monthly-budget">
+                Overall Monthly Budget
+                <span class="form-hint">Leave empty for no overall budget</span>
+              </label>
+              <div class="input-prefix-wrap">
+                <span class="input-prefix" id="currency-prefix">$</span>
+                <input type="number" id="setting-monthly-budget" class="input input--prefixed" min="0" step="0.01" placeholder="e.g. 2000">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="setting-currency-symbol">Currency Symbol</label>
+              <input type="text" id="setting-currency-symbol" class="input" maxlength="4" placeholder="$">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="setting-date-format">Date Format</label>
+              <select id="setting-date-format" class="select">
+                <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Save Settings</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="settings-card">
+          <h2 class="settings-card__title">Data Management</h2>
+          <div class="data-actions">
+            <div class="data-action-item">
+              <div>
+                <div class="data-action-title">Export Data</div>
+                <div class="data-action-desc">Download all transactions, categories, and settings as JSON.</div>
+              </div>
+              <button class="btn btn-secondary" id="btn-export">Export JSON</button>
+            </div>
+            <div class="data-action-item">
+              <div>
+                <div class="data-action-title">Import Data</div>
+                <div class="data-action-desc">Restore from a previously exported JSON file. This overwrites current data.</div>
+              </div>
+              <label class="btn btn-secondary" for="btn-import-file">
+                Import JSON
+                <input type="file" id="btn-import-file" accept=".json" class="sr-only">
+              </label>
+            </div>
+            <div class="data-action-item data-action-item--danger">
+              <div>
+                <div class="data-action-title">Reset All Data</div>
+                <div class="data-action-desc">Permanently delete all transactions, categories, and settings.</div>
+              </div>
+              <button class="btn btn-danger" id="btn-reset">Reset Data</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== MODALS ===== -->
+
+  <!-- Transaction Modal -->
+  <dialog id="transaction-modal" class="modal" aria-labelledby="txn-modal-title">
+    <div class="modal-inner">
+      <div class="modal-header">
+        <h2 class="modal-title" id="txn-modal-title">Add Transaction</h2>
+        <button class="btn btn-ghost btn-icon modal-close" data-close-modal="transaction-modal" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <form id="transaction-form" novalidate>
+        <input type="hidden" id="txn-edit-id">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="txn-type">Type <span class="required">*</span></label>
+            <div class="type-toggle" role="group" aria-label="Transaction type">
+              <label class="type-toggle__option">
+                <input type="radio" name="txn-type" value="expense" checked>
+                <span>Expense</span>
+              </label>
+              <label class="type-toggle__option">
+                <input type="radio" name="txn-type" value="income">
+                <span>Income</span>
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="txn-amount">Amount <span class="required">*</span></label>
+            <div class="input-prefix-wrap">
+              <span class="input-prefix" id="txn-currency-prefix">$</span>
+              <input type="number" id="txn-amount" class="input input--prefixed" min="0.01" step="0.01" placeholder="0.00" required>
+            </div>
+            <p class="field-error" id="txn-amount-error" hidden></p>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="txn-category">Category <span class="required">*</span></label>
+            <select id="txn-category" class="select" required>
+              <option value="">Select a category…</option>
+            </select>
+            <p class="field-error" id="txn-category-error" hidden></p>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="txn-date">Date <span class="required">*</span></label>
+            <input type="date" id="txn-date" class="input" required>
+            <p class="field-error" id="txn-date-error" hidden></p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="txn-description">Description</label>
+          <input type="text" id="txn-description" class="input" maxlength="200" placeholder="Optional note">
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-close-modal="transaction-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="txn-submit-btn">Add Transaction</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Category Modal -->
+  <dialog id="category-modal" class="modal" aria-labelledby="cat-modal-title">
+    <div class="modal-inner">
+      <div class="modal-header">
+        <h2 class="modal-title" id="cat-modal-title">Add Category</h2>
+        <button class="btn btn-ghost btn-icon modal-close" data-close-modal="category-modal" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <form id="category-form" novalidate>
+        <input type="hidden" id="cat-edit-id">
+
+        <div class="form-group">
+          <label class="form-label" for="cat-name">Name <span class="required">*</span></label>
+          <input type="text" id="cat-name" class="input" maxlength="50" placeholder="e.g. Groceries" required>
+          <p class="field-error" id="cat-name-error" hidden></p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Color <span class="required">*</span></label>
+          <div class="color-picker" id="color-picker" role="group" aria-label="Category color"></div>
+          <p class="field-error" id="cat-color-error" hidden></p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="cat-budget">
+            Monthly Budget
+            <span class="form-hint">Leave empty for no budget limit</span>
+          </label>
+          <div class="input-prefix-wrap">
+            <span class="input-prefix" id="cat-currency-prefix">$</span>
+            <input type="number" id="cat-budget" class="input input--prefixed" min="0" step="0.01" placeholder="e.g. 300">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-close-modal="category-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="cat-submit-btn">Add Category</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Confirm Modal -->
+  <dialog id="confirm-modal" class="modal modal--sm" aria-labelledby="confirm-title">
+    <div class="modal-inner">
+      <div class="modal-header">
+        <h2 class="modal-title" id="confirm-title">Confirm</h2>
+      </div>
+      <p class="confirm-message" id="confirm-message">Are you sure?</p>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="confirm-cancel">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirm-ok">Delete</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Toast Container -->
+  <div id="toast-container" aria-live="polite" aria-atomic="false" class="toast-container"></div>
+
+  <!-- Scripts: order matters — dependencies first, app.js last -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+  <script src="./js/utils.js" defer></script>
+  <script src="./js/store.js" defer></script>
+  <script src="./js/transactions.js" defer></script>
+  <script src="./js/categories.js" defer></script>
+  <script src="./js/ui.js" defer></script>
+  <script src="./js/dashboard.js" defer></script>
+  <script src="./js/charts.js" defer></script>
+  <script src="./js/app.js" defer></script>
+
+</body>
+</html>
