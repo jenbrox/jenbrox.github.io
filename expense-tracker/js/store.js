@@ -147,13 +147,14 @@ const Store = (() => {
     categories.forEach(c => { catMap[c.id] = c.name; });
 
     const escape = val => '"' + String(val == null ? '' : val).replace(/"/g, '""') + '"';
+    const resolveCatName = id => id === '__income__' ? 'Income' : id === '__uncategorized__' ? 'Uncategorized' : catMap[id] || id || '';
 
     const header = ['ID', 'Type', 'Amount', 'Category', 'Date', 'Description', 'Created At'];
     const rows = transactions.map(t => [
       t.id,
       t.type,
       t.amount,
-      catMap[t.categoryId] || t.categoryId,
+      resolveCatName(t.categoryId),
       t.date,
       t.description || '',
       t.createdAt,
@@ -238,7 +239,7 @@ const Store = (() => {
         }
 
         const catName  = idx.category !== -1 ? (cols[idx.category] || '').trim() : '';
-        const catId    = getOrCreateCatId(catName);
+        const catId    = type === 'income' ? '__income__' : getOrCreateCatId(catName);
         const desc     = idx.description !== -1 ? (cols[idx.description] || '').trim() : '';
         const existId  = idx.id !== -1 ? (cols[idx.id] || '').trim() : '';
 
@@ -276,12 +277,13 @@ const Store = (() => {
     const settings     = getSettings();
     const catMap = {};
     categories.forEach(c => { catMap[c.id] = c.name; });
+    const resolveCatName = id => id === '__income__' ? 'Income' : id === '__uncategorized__' ? 'Uncategorized' : catMap[id] || id || '';
 
     const txnRows = transactions.map(t => ({
       ID:          t.id,
       Type:        t.type,
       Amount:      t.amount,
-      Category:    catMap[t.categoryId] || t.categoryId || '',
+      Category:    resolveCatName(t.categoryId),
       Date:        t.date,
       Description: t.description || '',
       'Created At': t.createdAt,
@@ -354,7 +356,7 @@ const Store = (() => {
         const transactions = txnSheet.map((row, i) => {
           const type   = String(row.Type || '').trim().toLowerCase();
           const amount = parseFloat(row.Amount);
-          const catId  = getOrCreateCatId(String(row.Category || '').trim());
+          const catId  = type === 'income' ? '__income__' : getOrCreateCatId(String(row.Category || '').trim());
           return {
             id:          String(row.ID || ('txn_' + Date.now() + i + '_' + Math.random().toString(36).slice(2, 6))),
             type:        (type === 'income' || type === 'expense') ? type : 'expense',
