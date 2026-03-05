@@ -375,22 +375,93 @@ function setupDataHandlers() {
     UI.showToast('Data exported.', 'success');
   });
 
-  // Import
+  // Export CSV
+  document.getElementById('btn-export-csv')?.addEventListener('click', () => {
+    const csv  = Store.exportCSV();
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `expense-tracker-transactions-${Utils.todayISO()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    UI.showToast('Transactions exported as CSV.', 'success');
+  });
+
+  // Export Excel
+  document.getElementById('btn-export-excel')?.addEventListener('click', () => {
+    const result = Store.exportExcel(`expense-tracker-export-${Utils.todayISO()}.xlsx`);
+    if (result.success) {
+      UI.showToast('Data exported as Excel.', 'success');
+    } else {
+      UI.showToast(`Export failed: ${result.error}`, 'error');
+    }
+  });
+
+  // Import (JSON / CSV / Excel)
   document.getElementById('btn-import-file')?.addEventListener('change', e => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async ev => {
-      const result = Store.importData(ev.target.result);
-      if (result.success) {
-        UI.showToast('Data imported successfully.', 'success');
-        refreshAllViews();
-      } else {
-        UI.showToast(`Import failed: ${result.error}`, 'error');
-      }
-      e.target.value = ''; // reset file input
-    };
-    reader.readAsText(file);
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    if (ext === 'csv') {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const result = Store.importCSV(ev.target.result);
+        if (result.success) {
+          const warn = result.errors && result.errors.length
+            ? ` (${result.errors.length} row(s) skipped)` : '';
+          UI.showToast(`Imported ${result.imported} transaction(s).${warn}`, 'success');
+          refreshAllViews();
+        } else {
+          UI.showToast(`Import failed: ${result.error}`, 'error');
+        }
+        e.target.value = '';
+      };
+      reader.readAsText(file);
+
+    } else if (ext === 'xlsx') {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const result = Store.importExcel(ev.target.result);
+        if (result.success) {
+          UI.showToast('Excel data imported successfully.', 'success');
+          refreshAllViews();
+        } else {
+          UI.showToast(`Import failed: ${result.error}`, 'error');
+        }
+        e.target.value = '';
+      };
+      reader.readAsArrayBuffer(file);
+
+    } else {
+      // Default: JSON
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const result = Store.importData(ev.target.result);
+        if (result.success) {
+          UI.showToast('Data imported successfully.', 'success');
+          refreshAllViews();
+        } else {
+          UI.showToast(`Import failed: ${result.error}`, 'error');
+        }
+        e.target.value = '';
+      };
+      reader.readAsText(file);
+    }
+  });
+
+  // Clear Transactions
+  document.getElementById('btn-clear-transactions')?.addEventListener('click', async () => {
+    const confirmed = await UI.showConfirm(
+      'This will permanently delete ALL transactions. Categories and settings will be kept.',
+      'Clear All Transactions',
+      'btn-danger'
+    );
+    if (!confirmed) return;
+    Store.clearTransactions();
+    refreshAllViews();
+    UI.showToast('All transactions cleared.', 'success');
   });
 
   // Reset

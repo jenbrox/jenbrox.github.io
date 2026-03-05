@@ -236,19 +236,30 @@
             <div class="data-action-item">
               <div>
                 <div class="data-action-title">Export Data</div>
-                <div class="data-action-desc">Download all transactions, categories, and settings as JSON.</div>
+                <div class="data-action-desc">Download your data as JSON (full backup), CSV (transactions), or Excel (all sheets).</div>
               </div>
-              <button class="btn btn-secondary" id="btn-export">Export JSON</button>
+              <div class="data-action-buttons">
+                <button class="btn btn-secondary" id="btn-export">JSON</button>
+                <button class="btn btn-secondary" id="btn-export-csv">CSV</button>
+                <button class="btn btn-secondary" id="btn-export-excel">Excel</button>
+              </div>
             </div>
             <div class="data-action-item">
               <div>
                 <div class="data-action-title">Import Data</div>
-                <div class="data-action-desc">Restore from a previously exported JSON file. This overwrites current data.</div>
+                <div class="data-action-desc">Restore from a JSON, CSV, or Excel file. This overwrites current data.</div>
               </div>
               <label class="btn btn-secondary" for="btn-import-file">
-                Import JSON
-                <input type="file" id="btn-import-file" accept=".json" class="sr-only">
+                Import File
+                <input type="file" id="btn-import-file" accept=".json,.csv,.xlsx" class="sr-only">
               </label>
+            </div>
+            <div class="data-action-item data-action-item--danger">
+              <div>
+                <div class="data-action-title">Clear Transactions</div>
+                <div class="data-action-desc">Delete all transactions while keeping categories and settings.</div>
+              </div>
+              <button class="btn btn-danger" id="btn-clear-transactions">Clear</button>
             </div>
             <div class="data-action-item data-action-item--danger">
               <div>
@@ -391,6 +402,7 @@
   <div id="toast-container" aria-live="polite" aria-atomic="false" class="toast-container"></div>
 
   <!-- Scripts: order matters — dependencies first, app.js last -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
   <script src="./js/utils.js" defer></script>
   <script src="./js/store.js" defer></script>

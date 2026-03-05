@@ -1,0 +1,24 @@
+Date,Type,Category,Description,Amount,Notes
+2026-03-01,Income,Income,Primary Paycheck,3500.00,Monthly salary deposit
+2026-03-10,Income,Income,Freelance Project,850.00,Website consulting payment
+2026-03-15,Income,Income,Dividend Income,120.00,Quarterly ETF dividends
+2026-03-02,Expense,Housing,Rent Payment,1200.00,March rent
+2026-03-03,Expense,Utilities,Electric Bill,95.00,Monthly electricity bill
+2026-03-04,Expense,Utilities,Water Bill,38.00,City utilities payment
+2026-03-05,Expense,Food & Dining,Grocery Store,145.00,Weekly groceries
+2026-03-06,Expense,Food & Dining,Restaurant Dinner,52.00,Dinner with friends
+2026-03-07,Expense,Transport,Gas Station,48.00,Car fuel
+2026-03-08,Expense,Transport,Ride Share,18.50,Uber ride downtown
+2026-03-09,Expense,Shopping,Clothing Purchase,79.00,New jeans
+2026-03-10,Expense,Health,Pharmacy Purchase,24.00,Prescription refill
+2026-03-11,Expense,Health,Gym Membership,45.00,Monthly gym fee
+2026-03-12,Expense,Entertainment,Movie Tickets,28.00,Weekend movie
+2026-03-13,Expense,Entertainment,Streaming Rental,6.00,Online movie rental
+2026-03-14,Expense,Travel,Hotel Booking,210.00,Upcoming trip deposit
+2026-03-15,Expense,Other,Gift Purchase,40.00,Birthday gift
+2026-03-16,Expense,Insurance,Car Insurance,110.00,Monthly premium
+2026-03-17,Expense,Subscriptions,Music Streaming,10.99,Spotify monthly plan
+2026-03-18,Expense,Subscriptions,Cloud Storage,9.99,Extra storage plan
+2026-03-19,Expense,Education,Online Course,60.00,Programming course
+2026-03-20,Expense,Food & Dining,Coffee Shop,7.50,Morning coffee
+2026-03-21,Expense,Shopping,Household Items,34.00,Cleaning supplies
