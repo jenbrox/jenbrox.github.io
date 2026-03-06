@@ -213,6 +213,12 @@ const Utils = (() => {
     };
   }
 
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
   /* ── Public API ── */
   return {
     generateId,
@@ -228,5 +234,6 @@ const Utils = (() => {
     isValidDate,
     clamp,
     debounce,
+    escapeHtml,
   };
 })();

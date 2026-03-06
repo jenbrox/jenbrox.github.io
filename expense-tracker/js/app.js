@@ -63,8 +63,9 @@ async function init() {
   // 4. Initialize dark mode
   setupDarkMode();
 
-  // 4b. Print report button
+  // 4b. Print report button & calendar
   setupPrintHandler();
+  setupCalendarHandlers();
 
   // 4c. Logo click navigates to dashboard
   document.querySelector('.app-logo')?.addEventListener('click', () => navigateTo('dashboard'));
@@ -1290,6 +1291,183 @@ function setupDarkMode() {
 function updateMonthLabel(elId, monthKey) {
   const el = document.getElementById(elId);
   if (el) el.textContent = Utils.monthLabel(monthKey);
+}
+
+/* ═══════════════════════════════════════════════
+   CALENDAR MODAL
+═══════════════════════════════════════════════ */
+
+let calendarMonth = null;
+
+function openCalendar() {
+  calendarMonth = AppState.dashboardMonth;
+  renderCalendar();
+  UI.openModal('calendar-modal');
+}
+
+function renderCalendar() {
+  const [year, month] = calendarMonth.split('-').map(Number);
+  const settings = Store.getSettings();
+  const categories = Store.getCategories();
+  const catMap = {};
+  for (const c of categories) catMap[c.id] = c;
+
+  // Update title
+  const title = document.getElementById('calendar-modal-title');
+  if (title) title.textContent = Utils.monthLabel(calendarMonth);
+
+  // Hide day detail panel
+  const detail = document.getElementById('calendar-day-detail');
+  if (detail) detail.hidden = true;
+
+  // Get all transactions for this month
+  const txns = Transactions.getTransactionsForMonth(calendarMonth);
+
+  // Group transactions by day number
+  const byDay = {};
+  for (const t of txns) {
+    const day = parseInt(t.date.split('-')[2], 10);
+    if (!byDay[day]) byDay[day] = [];
+    byDay[day].push(t);
+  }
+
+  const grid = document.getElementById('calendar-grid');
+  if (!grid) return;
+
+  const today = new Date();
+  const todayDay = (today.getFullYear() === year && today.getMonth() + 1 === month) ? today.getDate() : -1;
+
+  const firstDow = new Date(year, month - 1, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  // Build HTML
+  let html = '';
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  for (const dn of dayNames) {
+    html += `<div class="calendar-grid__day-header">${dn}</div>`;
+  }
+
+  // Empty cells before first day
+  for (let i = 0; i < firstDow; i++) {
+    html += '<div class="calendar-cell calendar-cell--empty"></div>';
+  }
+
+  // Day cells
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dayTxns = byDay[d] || [];
+    const hasData = dayTxns.length > 0;
+    let income = 0, expense = 0;
+    const dots = [];
+
+    for (const t of dayTxns) {
+      if (t.type === 'income') income += t.amount;
+      else expense += t.amount;
+      const cat = catMap[t.categoryId];
+      if (cat && dots.length < 5) dots.push(cat.color || '#6C63FF');
+    }
+
+    let classes = 'calendar-cell';
+    if (hasData) classes += ' calendar-cell--has-data';
+    if (d === todayDay) classes += ' calendar-cell--today';
+
+    html += `<div class="${classes}" data-day="${d}">`;
+    html += `<span class="calendar-cell__day">${d}</span>`;
+
+    if (income > 0) {
+      html += `<span class="calendar-cell__income">+${Utils.formatCurrency(income, settings)}</span>`;
+    }
+    if (expense > 0) {
+      html += `<span class="calendar-cell__expense">-${Utils.formatCurrency(expense, settings)}</span>`;
+    }
+
+    if (dots.length > 0) {
+      html += '<div class="calendar-cell__dot-row">';
+      for (const color of dots) {
+        html += `<span class="calendar-cell__dot" style="background:${color}"></span>`;
+      }
+      html += '</div>';
+    }
+
+    html += '</div>';
+  }
+
+  grid.innerHTML = html;
+
+  // Click handlers on day cells
+  grid.querySelectorAll('.calendar-cell--has-data').forEach(cell => {
+    cell.addEventListener('click', () => {
+      const day = parseInt(cell.dataset.day, 10);
+      showCalendarDayDetail(day, byDay[day], catMap, settings);
+      grid.querySelectorAll('.calendar-cell--selected').forEach(c => c.classList.remove('calendar-cell--selected'));
+      cell.classList.add('calendar-cell--selected');
+    });
+  });
+}
+
+function showCalendarDayDetail(day, txns, catMap, settings) {
+  const detail = document.getElementById('calendar-day-detail');
+  const titleEl = document.getElementById('calendar-detail-title');
+  const summaryEl = document.getElementById('calendar-detail-summary');
+  const listEl = document.getElementById('calendar-detail-list');
+  if (!detail || !titleEl || !summaryEl || !listEl) return;
+
+  const [year, month] = calendarMonth.split('-').map(Number);
+  const dateStr = new Date(year, month - 1, day).toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+  });
+  titleEl.textContent = dateStr;
+
+  let income = 0, expense = 0;
+  for (const t of txns) {
+    if (t.type === 'income') income += t.amount;
+    else expense += t.amount;
+  }
+
+  let summaryHtml = '';
+  if (income > 0) summaryHtml += `<span class="income">+${Utils.formatCurrency(income, settings)}</span>`;
+  if (expense > 0) summaryHtml += `<span class="expense">-${Utils.formatCurrency(expense, settings)}</span>`;
+  summaryEl.innerHTML = summaryHtml;
+
+  let listHtml = '';
+  for (const t of txns) {
+    const cat = catMap[t.categoryId];
+    const catName = cat ? cat.name : '';
+    const catColor = cat ? cat.color : '#94a3b8';
+    const amountClass = t.type === 'income' ? 'calendar-txn__amount--income' : 'calendar-txn__amount--expense';
+    const sign = t.type === 'income' ? '+' : '-';
+    const desc = t.description || catName || (t.type === 'income' ? 'Income' : 'Expense');
+
+    listHtml += `<li class="calendar-txn">`;
+    listHtml += `<span class="calendar-txn__dot" style="background:${catColor}"></span>`;
+    listHtml += `<span class="calendar-txn__desc">${Utils.escapeHtml(desc)}</span>`;
+    if (catName) listHtml += `<span class="calendar-txn__cat">${Utils.escapeHtml(catName)}</span>`;
+    listHtml += `<span class="calendar-txn__amount ${amountClass}">${sign}${Utils.formatCurrency(t.amount, settings)}</span>`;
+    listHtml += `</li>`;
+  }
+  listEl.innerHTML = listHtml;
+  detail.hidden = false;
+}
+
+function setupCalendarHandlers() {
+  // Click on month labels opens calendar
+  ['dash-month-label', 'dash-month-label-mobile'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.cursor = 'pointer';
+      el.title = 'Open calendar';
+      el.addEventListener('click', openCalendar);
+    }
+  });
+
+  // Calendar month navigation
+  document.getElementById('cal-prev-month')?.addEventListener('click', () => {
+    calendarMonth = Utils.offsetMonth(calendarMonth, -1);
+    renderCalendar();
+  });
+  document.getElementById('cal-next-month')?.addEventListener('click', () => {
+    calendarMonth = Utils.offsetMonth(calendarMonth, 1);
+    renderCalendar();
+  });
 }
 
 function setupPrintHandler() {
