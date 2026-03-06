@@ -153,6 +153,20 @@ const Goals = (() => {
     return { valid: errors.length === 0, errors };
   }
 
+  function checkMilestones(goalId, previousSaved) {
+    const goal = getGoalById(goalId);
+    if (!goal) return [];
+    const milestones = [25, 50, 75, 100];
+    const reached = [];
+    for (const pct of milestones) {
+      const threshold = goal.targetAmount * (pct / 100);
+      if (previousSaved < threshold && goal.savedAmount >= threshold) {
+        reached.push(pct);
+      }
+    }
+    return reached;
+  }
+
   /* ── Public API ── */
   return {
     addGoal,
@@ -161,5 +175,6 @@ const Goals = (() => {
     addToGoal,
     getGoalById,
     getAllGoals,
+    checkMilestones,
   };
 })();

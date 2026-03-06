@@ -60,12 +60,22 @@ async function init() {
   UI.setupTypeToggleListener();
   UI.setupRecTypeToggleListener();
 
+  // 3b. New feature handlers
+  setupBulkActions();
+  setupSearchAllMonths();
+  setupTemplateHandlers();
+  setupNotesHandlers();
+  setupPayoffCalculator();
+
   // 4. Initialize dark mode
   setupDarkMode();
 
   // 4b. Print report button & calendar
   setupPrintHandler();
   setupCalendarHandlers();
+
+  // 4d. Onboarding tour (first visit only)
+  setupOnboarding();
 
   // 4c. Logo click navigates to dashboard
   document.querySelector('.app-logo')?.addEventListener('click', () => navigateTo('dashboard'));
@@ -232,7 +242,7 @@ function resizeImage(file, maxSize) {
 ═══════════════════════════════════════════════ */
 
 function navigateTo(sectionId) {
-  const valid = ['dashboard', 'transactions', 'categories', 'recurring', 'goals', 'debts', 'wishlist', 'accounts', 'settings'];
+  const valid = ['dashboard', 'transactions', 'categories', 'recurring', 'goals', 'debts', 'wishlist', 'accounts', 'notes', 'settings'];
   const target = valid.includes(sectionId) ? sectionId : 'dashboard';
 
   UI.showSection(target);
@@ -254,6 +264,8 @@ function navigateTo(sectionId) {
     renderWishlistView();
   } else if (target === 'accounts') {
     renderAccountsView();
+  } else if (target === 'notes') {
+    loadNotesForMonth();
   } else if (target === 'settings') {
     UI.loadSettingsForm();
   }
@@ -297,26 +309,34 @@ function renderTransactionsView() {
 }
 
 function renderFilteredTransactions() {
-  let txns = Transactions.getFilteredTransactions(
-    AppState.transactionMonth,
-    AppState.typeFilter,
-    AppState.categoryFilter
-  );
+  const searchAll = document.getElementById('search-all-months')?.checked && AppState.searchQuery;
 
-  // Apply search filter
-  if (AppState.searchQuery) {
-    const q = AppState.searchQuery.toLowerCase();
-    const categories = Store.getCategories();
-    const catMap = {};
-    categories.forEach(c => { catMap[c.id] = c.name.toLowerCase(); });
+  let txns;
+  if (searchAll) {
+    // Search across all months
+    txns = Transactions.searchAllMonths({ query: AppState.searchQuery, limit: 100 });
+  } else {
+    txns = Transactions.getFilteredTransactions(
+      AppState.transactionMonth,
+      AppState.typeFilter,
+      AppState.categoryFilter
+    );
 
-    txns = txns.filter(t => {
-      const desc = (t.description || '').toLowerCase();
-      const catName = catMap[t.categoryId] || '';
-      const amount = String(t.amount);
-      const tags = (t.tags || []).join(' ').toLowerCase();
-      return desc.includes(q) || catName.includes(q) || amount.includes(q) || tags.includes(q);
-    });
+    // Apply search filter
+    if (AppState.searchQuery) {
+      const q = AppState.searchQuery.toLowerCase();
+      const categories = Store.getCategories();
+      const catMap = {};
+      categories.forEach(c => { catMap[c.id] = c.name.toLowerCase(); });
+
+      txns = txns.filter(t => {
+        const desc = (t.description || '').toLowerCase();
+        const catName = catMap[t.categoryId] || '';
+        const amount = String(t.amount);
+        const tags = (t.tags || []).join(' ').toLowerCase();
+        return desc.includes(q) || catName.includes(q) || amount.includes(q) || tags.includes(q);
+      });
+    }
   }
 
   UI.renderTransactionList(txns);
@@ -770,6 +790,10 @@ function handleGoalAddFunds() {
     return;
   }
 
+  // Capture previous saved amount for milestone detection
+  const goalBefore = Goals.getGoalById(id);
+  const previousSaved = goalBefore ? goalBefore.savedAmount : 0;
+
   const result = Goals.addToGoal(id, parseFloat(amount));
   if (!result.success) {
     UI.showToast(result.errors.join(' '), 'error');
@@ -779,7 +803,19 @@ function handleGoalAddFunds() {
   UI.closeModal('goal-add-modal');
   const goal = result.goal;
   const pct = goal.targetAmount > 0 ? Math.round((goal.savedAmount / goal.targetAmount) * 100) : 0;
-  UI.showToast(pct >= 100 ? `Goal reached! Congratulations!` : `Added funds. ${pct}% of goal reached.`, 'success');
+
+  // Check for milestones
+  const milestones = Goals.checkMilestones(id, previousSaved);
+  if (milestones.length > 0) {
+    const highest = milestones[milestones.length - 1];
+    if (highest >= 100) {
+      UI.showToast(`Goal reached! Congratulations!`, 'success');
+    } else {
+      UI.showToast(`Milestone! You've reached ${highest}% of "${goal.name}"!`, 'success');
+    }
+  } else {
+    UI.showToast(`Added funds. ${pct}% of goal reached.`, 'success');
+  }
   renderGoalsView();
 }
 
@@ -799,6 +835,12 @@ async function handleDeleteGoal(id) {
 function renderDebtsView() {
   UI.renderDebtsList();
   UI.renderDebtsSummary();
+  // Show payoff calculator if there are active debts
+  const calc = document.getElementById('payoff-calculator');
+  if (calc) {
+    const debts = Store.getDebts ? Store.getDebts() : [];
+    calc.hidden = debts.filter(d => !d.isPaidOff).length === 0;
+  }
 }
 
 function setupDebtHandlers() {
@@ -1478,6 +1520,298 @@ function setupPrintHandler() {
   document.getElementById('btn-print-report')?.addEventListener('click', printAction);
   document.getElementById('btn-print-report-mobile')?.addEventListener('click', printAction);
 }
+
+/* ═══════════════════════════════════════════════
+   BULK ACTIONS
+═══════════════════════════════════════════════ */
+
+function setupBulkActions() {
+  const toolbar = document.getElementById('bulk-toolbar');
+  const selectAllTop = document.getElementById('bulk-select-all');
+  const selectAllTable = document.getElementById('table-select-all');
+  const deleteBtn = document.getElementById('bulk-delete');
+  const countEl = document.getElementById('bulk-count');
+
+  function updateBulkUI() {
+    const checked = document.querySelectorAll('.txn-checkbox:checked');
+    const count = checked.length;
+    if (toolbar) toolbar.hidden = count === 0;
+    if (countEl) countEl.textContent = `${count} selected`;
+    if (selectAllTop) selectAllTop.checked = count > 0 && count === document.querySelectorAll('.txn-checkbox').length;
+    if (selectAllTable) selectAllTable.checked = selectAllTop?.checked || false;
+  }
+
+  // Delegate checkbox changes on the transaction table body
+  document.getElementById('transaction-list')?.addEventListener('change', e => {
+    if (e.target.classList.contains('txn-checkbox')) updateBulkUI();
+  });
+
+  // Select-all in toolbar
+  selectAllTop?.addEventListener('change', () => {
+    document.querySelectorAll('.txn-checkbox').forEach(cb => { cb.checked = selectAllTop.checked; });
+    updateBulkUI();
+  });
+
+  // Select-all in table header
+  selectAllTable?.addEventListener('change', () => {
+    document.querySelectorAll('.txn-checkbox').forEach(cb => { cb.checked = selectAllTable.checked; });
+    updateBulkUI();
+  });
+
+  // Delete selected
+  deleteBtn?.addEventListener('click', async () => {
+    const checked = document.querySelectorAll('.txn-checkbox:checked');
+    if (checked.length === 0) return;
+
+    const confirmed = await UI.showConfirm(
+      `Delete ${checked.length} transaction${checked.length !== 1 ? 's' : ''}? This cannot be undone.`,
+      'Delete', 'btn-danger'
+    );
+    if (!confirmed) return;
+
+    checked.forEach(cb => {
+      Transactions.deleteTransaction(cb.value);
+    });
+
+    UI.showToast(`${checked.length} transaction(s) deleted.`, 'success');
+    if (toolbar) toolbar.hidden = true;
+    renderTransactionsView();
+    Dashboard.updateDashboard(AppState.dashboardMonth);
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   SEARCH ALL MONTHS
+═══════════════════════════════════════════════ */
+
+function setupSearchAllMonths() {
+  const toggle = document.getElementById('search-all-months');
+  if (!toggle) return;
+
+  toggle.addEventListener('change', () => {
+    renderFilteredTransactions();
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   QUICK-ADD TEMPLATES
+═══════════════════════════════════════════════ */
+
+function setupTemplateHandlers() {
+  // Open template modal
+  document.getElementById('btn-quick-add')?.addEventListener('click', () => {
+    // Populate category dropdown
+    const catSelect = document.getElementById('tpl-category');
+    if (catSelect) {
+      const cats = Store.getCategories();
+      catSelect.innerHTML = '<option value="">— Select —</option>' +
+        cats.map(c => `<option value="${c.id}">${Utils.escapeHtml(c.name)}</option>`).join('');
+    }
+    UI.renderTemplateList();
+    UI.openModal('template-modal');
+  });
+
+  // Save new template
+  document.getElementById('template-form')?.addEventListener('submit', e => {
+    e.preventDefault();
+    const name = document.getElementById('tpl-name')?.value.trim();
+    const amount = parseFloat(document.getElementById('tpl-amount')?.value);
+    const type = document.getElementById('tpl-type')?.value || 'expense';
+    const categoryId = document.getElementById('tpl-category')?.value || '';
+    const description = document.getElementById('tpl-description')?.value.trim() || '';
+
+    if (!name) { UI.showToast('Template name is required.', 'error'); return; }
+    if (!Utils.isPositiveNumber(amount)) { UI.showToast('Enter a valid amount.', 'error'); return; }
+
+    const templates = Store.getTemplates();
+    templates.push({
+      id: Utils.generateId(),
+      name, amount, type, categoryId, description,
+      createdAt: new Date().toISOString(),
+    });
+    Store.saveTemplates(templates);
+
+    document.getElementById('template-form').reset();
+    UI.renderTemplateList();
+    UI.showToast('Template saved.', 'success');
+  });
+
+  // Use / delete template via delegation
+  document.getElementById('template-list')?.addEventListener('click', e => {
+    const useBtn = e.target.closest('[data-use-tpl]');
+    const delBtn = e.target.closest('[data-delete-tpl]');
+
+    if (useBtn) {
+      const tplId = useBtn.dataset.useTpl;
+      const templates = Store.getTemplates();
+      const tpl = templates.find(t => t.id === tplId);
+      if (!tpl) return;
+
+      const txnData = {
+        date: Utils.todayISO(),
+        amount: tpl.amount,
+        type: tpl.type,
+        categoryId: tpl.categoryId,
+        description: tpl.description,
+      };
+      const result = Transactions.addTransaction(txnData);
+      if (result.success) {
+        UI.closeModal('template-modal');
+        UI.showToast(`Added ${tpl.name} transaction.`, 'success');
+        renderTransactionsView();
+        Dashboard.updateDashboard(AppState.dashboardMonth);
+      } else {
+        UI.showToast(result.errors.join(' '), 'error');
+      }
+    }
+
+    if (delBtn) {
+      const tplId = delBtn.dataset.deleteTpl;
+      let templates = Store.getTemplates();
+      templates = templates.filter(t => t.id !== tplId);
+      Store.saveTemplates(templates);
+      UI.renderTemplateList();
+      UI.showToast('Template deleted.', 'success');
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   NOTES / JOURNAL
+═══════════════════════════════════════════════ */
+
+let notesMonth = null;
+
+function setupNotesHandlers() {
+  notesMonth = Utils.getCurrentMonthKey();
+  updateNotesMonthLabel();
+
+  // Month navigation
+  document.getElementById('notes-prev-month')?.addEventListener('click', () => {
+    notesMonth = Utils.offsetMonth(notesMonth, -1);
+    updateNotesMonthLabel();
+    loadNotesForMonth();
+  });
+  document.getElementById('notes-next-month')?.addEventListener('click', () => {
+    notesMonth = Utils.offsetMonth(notesMonth, 1);
+    updateNotesMonthLabel();
+    loadNotesForMonth();
+  });
+
+  // Save
+  document.getElementById('btn-save-notes')?.addEventListener('click', () => {
+    const text = document.getElementById('notes-textarea')?.value || '';
+    const notes = Store.getNotes();
+    const existing = notes.find(n => n.monthKey === notesMonth);
+    if (existing) {
+      existing.text = text;
+      existing.updatedAt = new Date().toISOString();
+    } else {
+      notes.push({ id: Utils.generateId(), monthKey: notesMonth, text, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+    }
+    Store.saveNotes(notes);
+    const statusEl = document.getElementById('notes-status');
+    if (statusEl) statusEl.textContent = 'Saved!';
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
+    UI.renderNotesHistory();
+  });
+
+  // Load current month on first render
+  loadNotesForMonth();
+}
+
+function updateNotesMonthLabel() {
+  const el = document.getElementById('notes-month-label');
+  if (el) el.textContent = Utils.monthLabel(notesMonth);
+}
+
+function loadNotesForMonth() {
+  const notes = Store.getNotes();
+  const note = notes.find(n => n.monthKey === notesMonth);
+  const textarea = document.getElementById('notes-textarea');
+  if (textarea) textarea.value = note ? note.text : '';
+  const statusEl = document.getElementById('notes-status');
+  if (statusEl) statusEl.textContent = '';
+  UI.renderNotesHistory();
+}
+
+/* ═══════════════════════════════════════════════
+   DEBT PAYOFF CALCULATOR
+═══════════════════════════════════════════════ */
+
+function setupPayoffCalculator() {
+  document.getElementById('btn-calc-payoff')?.addEventListener('click', () => {
+    const input = document.getElementById('payoff-monthly');
+    const monthly = parseFloat(input?.value);
+    if (!Utils.isPositiveNumber(monthly)) {
+      UI.showToast('Enter a valid monthly payment amount.', 'error');
+      return;
+    }
+    const result = Debts.calculatePayoffPlan(monthly);
+    UI.renderPayoffResults(result);
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   ONBOARDING TOUR
+═══════════════════════════════════════════════ */
+
+function setupOnboarding() {
+  const ONBOARDING_KEY = 'et_onboarding_done';
+  if (localStorage.getItem(ONBOARDING_KEY)) return;
+
+  const steps = [
+    { title: 'Welcome to Jentrak!', text: 'Your personal expense tracker. Let\'s take a quick tour of the main features.' },
+    { title: 'Dashboard', text: 'See your monthly income, expenses, budget status, and spending insights at a glance.' },
+    { title: 'Transactions', text: 'Add income and expenses, search, filter, and manage your financial records.' },
+    { title: 'Categories & Budgets', text: 'Organize spending into categories and set budget limits to stay on track.' },
+    { title: 'Goals & Debts', text: 'Track savings goals and manage debt payoff strategies.' },
+    { title: 'Quick Add', text: 'Use the lightning bolt button in the header to instantly add transactions from saved templates.' },
+    { title: 'You\'re All Set!', text: 'Start by adding your first transaction. Press "N" anytime to quickly add one.' },
+  ];
+
+  let currentStep = 0;
+  const overlay = document.getElementById('onboarding-overlay');
+  const contentEl = document.getElementById('onboarding-step-content');
+  const dotsEl = document.getElementById('onboarding-dots');
+  const nextBtn = document.getElementById('onboarding-next');
+  const skipBtn = document.getElementById('onboarding-skip');
+
+  if (!overlay || !contentEl) return;
+
+  function renderStep() {
+    const step = steps[currentStep];
+    contentEl.innerHTML = `<h3>${step.title}</h3><p>${step.text}</p>`;
+    dotsEl.innerHTML = steps.map((_, i) =>
+      `<span class="onboarding-dot${i === currentStep ? ' onboarding-dot--active' : ''}"></span>`
+    ).join('');
+    nextBtn.textContent = currentStep === steps.length - 1 ? 'Get Started' : 'Next';
+  }
+
+  function finish() {
+    overlay.hidden = true;
+    localStorage.setItem(ONBOARDING_KEY, 'true');
+  }
+
+  nextBtn?.addEventListener('click', () => {
+    if (currentStep < steps.length - 1) {
+      currentStep++;
+      renderStep();
+    } else {
+      finish();
+    }
+  });
+
+  skipBtn?.addEventListener('click', finish);
+
+  // Show onboarding
+  renderStep();
+  overlay.hidden = false;
+}
+
+/* ═══════════════════════════════════════════════
+   GOAL MILESTONES (enhanced add-funds)
+═══════════════════════════════════════════════ */
 
 function refreshAllViews() {
   UI.syncCurrencyPrefixes();

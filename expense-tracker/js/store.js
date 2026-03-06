@@ -11,7 +11,7 @@ const Store = (() => {
 
   const DB_NAME = 'ExpenseTrackerDB';
   const DB_VERSION = 1;
-  const STORES = ['transactions', 'categories', 'settings', 'recurring', 'goals', 'debts', 'wishlist', 'accounts'];
+  const STORES = ['transactions', 'categories', 'settings', 'recurring', 'goals', 'debts', 'wishlist', 'accounts', 'templates', 'notes'];
 
   const LS_KEYS = {
     TRANSACTIONS: 'et_transactions',
@@ -22,6 +22,8 @@ const Store = (() => {
     DEBTS:        'et_debts',
     WISHLIST:     'et_wishlist',
     ACCOUNTS:     'et_accounts',
+    TEMPLATES:    'et_templates',
+    NOTES:        'et_notes',
   };
 
   // Stable IDs for default categories
@@ -65,6 +67,8 @@ const Store = (() => {
     debts:        [],
     wishlist:     [],
     accounts:     [],
+    templates:    [],
+    notes:        [],
   };
 
   let _db = null;
@@ -188,6 +192,8 @@ const Store = (() => {
     _cache.debts        = loadFromLocalStorage(LS_KEYS.DEBTS, []);
     _cache.wishlist     = loadFromLocalStorage(LS_KEYS.WISHLIST, []);
     _cache.accounts     = loadFromLocalStorage(LS_KEYS.ACCOUNTS, []);
+    _cache.templates    = loadFromLocalStorage(LS_KEYS.TEMPLATES, []);
+    _cache.notes        = loadFromLocalStorage(LS_KEYS.NOTES, []);
   }
 
   async function migrateToIndexedDB() {
@@ -307,6 +313,14 @@ const Store = (() => {
   function getAccounts() { return _cache.accounts; }
   function saveAccounts(arr) { _cache.accounts = arr; persist('accounts', LS_KEYS.ACCOUNTS, arr); }
 
+  /* ── Templates ── */
+  function getTemplates() { return _cache.templates; }
+  function saveTemplates(arr) { _cache.templates = arr; persist('templates', LS_KEYS.TEMPLATES, arr); }
+
+  /* ── Notes ── */
+  function getNotes() { return _cache.notes; }
+  function saveNotes(arr) { _cache.notes = arr; persist('notes', LS_KEYS.NOTES, arr); }
+
   /* ── Settings ── */
   function getSettings() {
     return _cache.settings || getDefaultSettings();
@@ -369,6 +383,8 @@ const Store = (() => {
       et_debts:        getDebts(),
       et_wishlist:     getWishlist(),
       et_accounts:     getAccounts(),
+      et_templates:    getTemplates(),
+      et_notes:        getNotes(),
       exportedAt:      new Date().toISOString(),
       version:         1,
     }, null, 2);
@@ -390,6 +406,8 @@ const Store = (() => {
       if (Array.isArray(data.et_debts)) saveDebts(data.et_debts);
       if (Array.isArray(data.et_wishlist)) saveWishlist(data.et_wishlist);
       if (Array.isArray(data.et_accounts)) saveAccounts(data.et_accounts);
+      if (Array.isArray(data.et_templates)) saveTemplates(data.et_templates);
+      if (Array.isArray(data.et_notes)) saveNotes(data.et_notes);
       return { success: true };
     } catch (e) {
       return { success: false, error: 'Invalid JSON file.' };
@@ -672,6 +690,8 @@ const Store = (() => {
     _cache.debts = [];
     _cache.wishlist = [];
     _cache.accounts = [];
+    _cache.templates = [];
+    _cache.notes = [];
 
     // Clear localStorage
     Object.values(LS_KEYS).forEach(key => localStorage.removeItem(key));
@@ -723,5 +743,9 @@ const Store = (() => {
     saveWishlist,
     getAccounts,
     saveAccounts,
+    getTemplates,
+    saveTemplates,
+    getNotes,
+    saveNotes,
   };
 })();

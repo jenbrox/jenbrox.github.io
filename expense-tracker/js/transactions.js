@@ -429,6 +429,176 @@ const Transactions = (() => {
     return data;
   }
 
+  /* ── Advanced Analytics ── */
+
+  // Counts consecutive days with zero expenses in the given month.
+  // currentStreak counts backwards from today (or last day if past month).
+  // longestStreak is the longest such run found anywhere in the month.
+  function getSpendingStreak(monthKey) {
+    const txns = getTransactionsForMonth(monthKey).filter(t => t.type === 'expense');
+    const daySet = new Set();
+    for (const t of txns) {
+      const day = parseInt(t.date.split('-')[2], 10);
+      daySet.add(day);
+    }
+
+    const [y, m] = monthKey.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+
+    // Determine the starting day for the current streak
+    const today = new Date();
+    const currentMonthKey = Utils.getCurrentMonthKey();
+    let startDay;
+    if (monthKey === currentMonthKey) {
+      startDay = today.getDate();
+    } else {
+      startDay = daysInMonth;
+    }
+
+    // Current streak: consecutive zero-expense days going backwards from startDay
+    let currentStreak = 0;
+    for (let d = startDay; d >= 1; d--) {
+      if (!daySet.has(d)) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
+
+    // Longest streak: scan entire month for longest run of zero-expense days
+    let longestStreak = 0;
+    let run = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      if (!daySet.has(d)) {
+        run++;
+        if (run > longestStreak) longestStreak = run;
+      } else {
+        run = 0;
+      }
+    }
+
+    return { currentStreak, longestStreak };
+  }
+
+  // Returns spending in a single category over the last N months.
+  // Each entry has { label, amount } suitable for a mini trend chart.
+  function getCategoryTrend(categoryId, numMonths = 6) {
+    const currentMonth = Utils.getCurrentMonthKey();
+    const results = [];
+    for (let i = numMonths - 1; i >= 0; i--) {
+      const mk = Utils.offsetMonth(currentMonth, -i);
+      const txns = getTransactionsForMonth(mk).filter(
+        t => t.type === 'expense' && t.categoryId === categoryId
+      );
+      const amount = txns.reduce((s, t) => s + t.amount, 0);
+      results.push({ label: Utils.monthLabel(mk), amount });
+    }
+    return results;
+  }
+
+  // Splits a month into weekly buckets (days 1-7 = Week 1, 8-14 = Week 2, etc.)
+  // and totals income and expenses per bucket.
+  function getWeeklyBreakdown(monthKey) {
+    const txns = getTransactionsForMonth(monthKey);
+    const [y, m] = monthKey.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const numWeeks = Math.ceil(daysInMonth / 7);
+
+    const weeks = [];
+    for (let w = 0; w < numWeeks; w++) {
+      weeks.push({ week: `Week ${w + 1}`, income: 0, expenses: 0 });
+    }
+
+    for (const t of txns) {
+      const day = parseInt(t.date.split('-')[2], 10);
+      const weekIdx = Math.floor((day - 1) / 7);
+      if (t.type === 'income') {
+        weeks[weekIdx].income += t.amount;
+      } else {
+        weeks[weekIdx].expenses += t.amount;
+      }
+    }
+
+    return weeks;
+  }
+
+  // Returns the top N transaction descriptions by total amount spent.
+  // Aggregates across all expense transactions in the month, skipping empty descriptions.
+  function getTopDescriptions(monthKey, limit = 5) {
+    const txns = getTransactionsForMonth(monthKey).filter(
+      t => t.type === 'expense' && t.description && t.description.trim() !== ''
+    );
+
+    const descMap = {};
+    for (const t of txns) {
+      const desc = t.description.trim();
+      if (!descMap[desc]) {
+        descMap[desc] = { description: desc, count: 0, total: 0 };
+      }
+      descMap[desc].count++;
+      descMap[desc].total += t.amount;
+    }
+
+    return Object.values(descMap)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, limit);
+  }
+
+  // Projects total month-end spending based on current daily rate.
+  // Compares the projection against the total budget to flag onTrack.
+  function getBudgetPace(monthKey) {
+    const [y, m] = monthKey.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+
+    const today = new Date();
+    const currentMonthKey = Utils.getCurrentMonthKey();
+    let daysElapsed;
+    if (monthKey === currentMonthKey) {
+      daysElapsed = today.getDate();
+    } else {
+      daysElapsed = daysInMonth;
+    }
+
+    const txns = getTransactionsForMonth(monthKey).filter(t => t.type === 'expense');
+    const totalSpent = txns.reduce((s, t) => s + t.amount, 0);
+    const dailyRate = daysElapsed > 0 ? totalSpent / daysElapsed : 0;
+    const projected = dailyRate * daysInMonth;
+
+    // Sum all category budgets to get total budget
+    const categories = Store.getCategories();
+    const totalBudget = categories.reduce((s, c) => s + (c.monthlyBudget || 0), 0);
+    const onTrack = totalBudget > 0 ? projected <= totalBudget : true;
+
+    return { dailyRate, projected, daysElapsed, daysInMonth, onTrack };
+  }
+
+  // Searches across ALL transactions for matching description, tags, or category name.
+  // Returns matching transactions sorted by date descending. Case-insensitive.
+  function searchAllMonths({ query, limit = 50 } = {}) {
+    if (!query || typeof query !== 'string' || query.trim() === '') return [];
+    const q = query.trim().toLowerCase();
+
+    const categories = Store.getCategories();
+    const catMap = {};
+    for (const c of categories) catMap[c.id] = c;
+
+    const all = Store.getTransactions();
+    const matches = all.filter(t => {
+      // Match description
+      if (t.description && t.description.toLowerCase().includes(q)) return true;
+      // Match tags
+      if (t.tags && t.tags.some(tag => tag.toLowerCase().includes(q))) return true;
+      // Match category name
+      const cat = catMap[t.categoryId];
+      if (cat && cat.name.toLowerCase().includes(q)) return true;
+      return false;
+    });
+
+    return matches
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, limit);
+  }
+
   /* ── Public API ── */
   return {
     addTransaction,
@@ -447,5 +617,11 @@ const Transactions = (() => {
     findDuplicates,
     getCashFlowForecast,
     getSpendingHeatmap,
+    getSpendingStreak,
+    getCategoryTrend,
+    getWeeklyBreakdown,
+    getTopDescriptions,
+    getBudgetPace,
+    searchAllMonths,
   };
 })();

@@ -1774,6 +1774,564 @@ kbd {
   box-shadow: 0 1px 0 var(--color-border);
 }
 
+/* ── Dashboard Widgets Grid ── */
+.widgets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+/* ── Spending Streak ── */
+.streak-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  text-align: center;
+}
+
+.streak-card__current {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.streak-card__number {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.streak-card__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.streak-card__best {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Budget Pace ── */
+.pace-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  border-left: 4px solid var(--color-primary);
+}
+
+.pace-card--on-track {
+  border-left-color: #22c55e;
+}
+
+.pace-card--over {
+  border-left-color: #ef4444;
+}
+
+.pace-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.pace-card__status {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.pace-card--on-track .pace-card__status { color: #22c55e; }
+.pace-card--over .pace-card__status { color: #ef4444; }
+
+.pace-card__rate {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.pace-card__detail {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Top Merchants ── */
+.merchants-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.merchants-card__title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: var(--space-md);
+}
+
+.merchants-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.merchants-list__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font-size: 0.82rem;
+}
+
+.merchants-list__rank {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.merchants-list__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merchants-list__count {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.merchants-list__total {
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ── Bill Reminders ── */
+.reminders-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.reminders-card__title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: var(--space-md);
+}
+
+.reminders-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.reminders-list__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font-size: 0.82rem;
+}
+
+.reminders-list__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.reminders-list__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reminders-list__amount {
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.reminders-list__due {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  min-width: 60px;
+  text-align: right;
+}
+
+/* ── Savings Suggestion ── */
+.suggestion-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  border-left: 4px solid var(--color-primary);
+}
+
+.suggestion-card__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.suggestion-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.suggestion-card__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.suggestion-card__amount {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.suggestion-card__detail {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Bulk Action Toolbar ── */
+.bulk-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-md);
+}
+
+.bulk-toolbar__select-all {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bulk-toolbar__select-all input {
+  accent-color: #fff;
+}
+
+.col-check {
+  width: 36px;
+  text-align: center;
+}
+
+.search-all-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.search-all-toggle input {
+  accent-color: var(--color-primary);
+}
+
+/* ── Payoff Calculator ── */
+.payoff-calculator {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.payoff-calculator__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.payoff-calculator__title {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.payoff-calculator__input {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.payoff-calculator__input label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.payoff-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-lg);
+}
+
+.payoff-strategy {
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.payoff-strategy__name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: var(--space-sm);
+}
+
+.payoff-strategy__detail {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.payoff-strategy__months {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+/* ── Notes Editor ── */
+.notes-editor {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.notes-textarea {
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  min-height: 200px;
+}
+
+.notes-editor__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-md);
+}
+
+.notes-editor__status {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.notes-history {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.notes-history__item {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.notes-history__month {
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: var(--space-sm);
+  color: var(--color-primary);
+}
+
+.notes-history__text {
+  font-size: 0.85rem;
+  color: var(--color-text);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* ── Template List ── */
+.template-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.template-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.template-item:hover {
+  background: var(--color-primary-light);
+}
+
+.template-item__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.template-item__name {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.85rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.template-item__amount {
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.template-item__amount--income { color: #22c55e; }
+.template-item__amount--expense { color: #ef4444; }
+
+.template-item__delete {
+  flex-shrink: 0;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+/* ── Onboarding ── */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+}
+
+.onboarding-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  max-width: 480px;
+  width: 100%;
+  padding: var(--space-xl);
+}
+
+.onboarding-step {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+
+.onboarding-step h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: var(--space-md);
+}
+
+.onboarding-step p {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.onboarding-step svg {
+  margin-bottom: var(--space-lg);
+  color: var(--color-primary);
+}
+
+.onboarding-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.onboarding-dots {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.onboarding-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border);
+}
+
+.onboarding-dot--active {
+  background: var(--color-primary);
+}
+
+.onboarding-buttons {
+  display: flex;
+  gap: var(--space-sm);
+}
+
 /* ── Undo Toast ── */
 .toast-undo {
   display: inline-flex;

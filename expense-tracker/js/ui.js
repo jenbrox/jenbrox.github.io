@@ -384,7 +384,7 @@ const UI = (() => {
     categories.forEach(c => { catMap[c.id] = c; });
 
     if (!transactions || transactions.length === 0) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No transactions found. Try adjusting your filters or adding a new one!</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="8">No transactions found. Try adjusting your filters or adding a new one!</td></tr>';
       tfoot.hidden = true;
       return;
     }
@@ -404,7 +404,8 @@ const UI = (() => {
       else totalExpenses += t.amount;
 
       return `
-        <tr>
+        <tr data-txn-id="${escapeHtml(t.id)}">
+          <td class="col-check"><input type="checkbox" class="txn-checkbox" value="${escapeHtml(t.id)}"></td>
           <td>${escapeHtml(dateStr)}</td>
           <td><span class="badge badge--${t.type}">${t.type === 'income' ? 'Income' : 'Expense'}</span></td>
           <td>
@@ -1388,6 +1389,109 @@ const UI = (() => {
   }
 
   /* ═══════════════════════════════════════════════
+     TEMPLATE LIST RENDERER
+  ═══════════════════════════════════════════════ */
+
+  function renderTemplateList() {
+    const templates = Store.getTemplates();
+    const container = document.getElementById('template-list');
+    if (!container) return;
+
+    const categories = Store.getCategories();
+    const catMap = {};
+    categories.forEach(c => { catMap[c.id] = c; });
+    const settings = Store.getSettings();
+
+    if (templates.length === 0) {
+      container.innerHTML = '<p class="empty-state">No templates yet. Save a transaction as a template to quickly add it again.</p>';
+      return;
+    }
+
+    container.innerHTML = templates.map(tpl => {
+      const cat = catMap[tpl.categoryId];
+      const catColor = cat ? cat.color : '#94a3b8';
+      const amountClass = tpl.type === 'income' ? 'template-item__amount--income' : 'template-item__amount--expense';
+      const sign = tpl.type === 'income' ? '+' : '-';
+
+      return `
+        <div class="template-item" data-use-template="${escapeHtml(tpl.id)}">
+          <span class="template-item__dot" style="background:${escapeHtml(catColor)}"></span>
+          <span class="template-item__name">${escapeHtml(tpl.name)}</span>
+          <span class="template-item__amount ${amountClass}">${sign}${Utils.formatCurrency(tpl.amount, settings)}</span>
+          <button class="btn btn-ghost btn-icon template-item__delete" data-delete-template="${escapeHtml(tpl.id)}" title="Delete template" onclick="event.stopPropagation()">
+            <svg width="14" height="14" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M3 4h9M6 4V2.5h3V4M5.5 4v7.5h4V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  /* ═══════════════════════════════════════════════
+     NOTES HISTORY RENDERER
+  ═══════════════════════════════════════════════ */
+
+  function renderNotesHistory() {
+    const notes = Store.getNotes();
+    const container = document.getElementById('notes-history');
+    if (!container) return;
+
+    const otherNotes = notes
+      .filter(n => n.text && n.text.trim())
+      .sort((a, b) => b.monthKey.localeCompare(a.monthKey))
+      .slice(0, 12);
+
+    if (otherNotes.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+
+    container.innerHTML = '<h2 style="font-size:1rem;font-weight:700;margin-bottom:var(--space-md);">Previous Notes</h2>' +
+      otherNotes.map(n => `
+        <div class="notes-history__item">
+          <div class="notes-history__month">${Utils.monthLabel(n.monthKey)}</div>
+          <div class="notes-history__text">${escapeHtml(n.text)}</div>
+        </div>
+      `).join('');
+  }
+
+  /* ═══════════════════════════════════════════════
+     PAYOFF RESULTS RENDERER
+  ═══════════════════════════════════════════════ */
+
+  function renderPayoffResults(result) {
+    const container = document.getElementById('payoff-results');
+    if (!container || !result) return;
+
+    const settings = Store.getSettings();
+
+    container.innerHTML = `
+      <div class="payoff-strategy">
+        <div class="payoff-strategy__name">Snowball Method</div>
+        <div class="payoff-strategy__detail">
+          Pay smallest debts first for quick wins.
+          <br><span class="payoff-strategy__months">${result.snowball.months}</span> months
+          <br>Total paid: ${Utils.formatCurrency(result.snowball.totalPaid, settings)}
+        </div>
+      </div>
+      <div class="payoff-strategy">
+        <div class="payoff-strategy__name">Avalanche Method</div>
+        <div class="payoff-strategy__detail">
+          Pay largest debts first to minimize total cost.
+          <br><span class="payoff-strategy__months">${result.avalanche.months}</span> months
+          <br>Total paid: ${Utils.formatCurrency(result.avalanche.totalPaid, settings)}
+        </div>
+      </div>
+      <div class="payoff-strategy">
+        <div class="payoff-strategy__name">Total Debt</div>
+        <div class="payoff-strategy__detail">
+          <span class="payoff-strategy__months">${Utils.formatCurrency(result.totalDebt, settings)}</span>
+          <br>Outstanding balance across all debts
+        </div>
+      </div>
+    `;
+  }
+
+  /* ═══════════════════════════════════════════════
      PUBLIC API
   ═══════════════════════════════════════════════ */
 
@@ -1442,5 +1546,11 @@ const UI = (() => {
     showUndoToast,
     // Net worth (dashboard)
     renderNetWorthCards,
+    // Templates
+    renderTemplateList,
+    // Notes
+    renderNotesHistory,
+    // Payoff
+    renderPayoffResults,
   };
 })();

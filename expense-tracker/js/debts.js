@@ -151,6 +151,45 @@ const Debts = (() => {
     return { owedToMe, iOwe, net: owedToMe - iOwe };
   }
 
+  function calculatePayoffPlan(monthlyPayment) {
+    const debts = Store.getDebts().filter(d => !d.settled && d.direction === 'i_owe');
+    if (debts.length === 0 || !monthlyPayment || monthlyPayment <= 0) return null;
+
+    const snowball = simulatePayoff(debts.slice().sort((a, b) => {
+      const remA = a.amount - (a.settledAmount || 0);
+      const remB = b.amount - (b.settledAmount || 0);
+      return remA - remB;
+    }), monthlyPayment);
+
+    const avalanche = simulatePayoff(debts.slice().sort((a, b) => {
+      const remB = b.amount - (b.settledAmount || 0);
+      const remA = a.amount - (a.settledAmount || 0);
+      return remB - remA;
+    }), monthlyPayment);
+
+    return { snowball, avalanche, totalDebt: debts.reduce((sum, d) => sum + (d.amount - (d.settledAmount || 0)), 0) };
+  }
+
+  function simulatePayoff(sortedDebts, monthlyPayment) {
+    const remaining = sortedDebts.map(d => d.amount - (d.settledAmount || 0));
+    let months = 0;
+    let totalPaid = 0;
+    const maxMonths = 600;
+    while (remaining.some(r => r > 0) && months < maxMonths) {
+      months++;
+      let budget = monthlyPayment;
+      for (let i = 0; i < remaining.length; i++) {
+        if (remaining[i] <= 0) continue;
+        const payment = Math.min(remaining[i], budget);
+        remaining[i] -= payment;
+        totalPaid += payment;
+        budget -= payment;
+        if (budget <= 0) break;
+      }
+    }
+    return { months, totalPaid };
+  }
+
   return {
     addDebt,
     updateDebt,
@@ -159,5 +198,7 @@ const Debts = (() => {
     getDebtById,
     getAllDebts,
     getSummary,
+    calculatePayoffPlan,
+    simulatePayoff,
   };
 })();

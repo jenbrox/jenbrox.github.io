@@ -280,6 +280,75 @@ const Charts = (() => {
       );
     }
 
+    // ── Category Trend Line ──
+    const catTrendCanvas = document.getElementById('chart-category-trend');
+    if (catTrendCanvas) {
+      CHART_INSTANCES.categoryTrend = new Chart(
+        catTrendCanvas.getContext('2d'),
+        {
+          type: 'line',
+          data: { labels: [], datasets: [] },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'circle', padding: 16 } },
+              tooltip: { callbacks: { label: currencyTooltipCallback } },
+            },
+            scales: {
+              y: { beginAtZero: true, ticks: { callback: currencyAxisCallback }, grid: { color: 'rgba(0,0,0,.05)' } },
+              x: { grid: { display: false } },
+            },
+          },
+        }
+      );
+    }
+
+    // ── Weekly Breakdown ──
+    const weeklyCanvas = document.getElementById('chart-weekly');
+    if (weeklyCanvas) {
+      CHART_INSTANCES.weekly = new Chart(
+        weeklyCanvas.getContext('2d'),
+        {
+          type: 'bar',
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: 'Income',
+                data: [],
+                backgroundColor: 'rgba(34,197,94,.65)',
+                borderColor: '#22c55e',
+                borderWidth: 1,
+                borderRadius: 4,
+              },
+              {
+                label: 'Expenses',
+                data: [],
+                backgroundColor: 'rgba(239,68,68,.65)',
+                borderColor: '#ef4444',
+                borderWidth: 1,
+                borderRadius: 4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'rect', padding: 16 } },
+              tooltip: { callbacks: { label: currencyTooltipCallback } },
+            },
+            scales: {
+              y: { beginAtZero: true, ticks: { callback: currencyAxisCallback }, grid: { color: 'rgba(0,0,0,.05)' } },
+              x: { grid: { display: false } },
+            },
+          },
+        }
+      );
+    }
+
     // ── Monthly Trend Line ──
     CHART_INSTANCES.line = new Chart(
       document.getElementById('chart-trend-line').getContext('2d'),
@@ -458,6 +527,48 @@ const Charts = (() => {
     chart.update();
   }
 
+  function updateCategoryTrendChart() {
+    const chart = CHART_INSTANCES.categoryTrend;
+    const card = document.getElementById('category-trend-card');
+    if (!chart || !card) return;
+
+    const categories = Store.getCategories();
+    if (categories.length === 0) { card.style.display = 'none'; return; }
+
+    card.style.display = '';
+    const top5 = categories.slice(0, 5);
+    const datasets = top5.map(cat => {
+      const trend = Transactions.getCategoryTrend(cat.id, 6);
+      return {
+        label: cat.name,
+        data: trend.map(t => t.amount),
+        borderColor: cat.color,
+        backgroundColor: cat.color + '15',
+        borderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        fill: false,
+        tension: 0.3,
+      };
+    });
+
+    const labels = Transactions.getCategoryTrend(top5[0].id, 6).map(t => t.label);
+    chart.data.labels = labels;
+    chart.data.datasets = datasets;
+    chart.update();
+  }
+
+  function updateWeeklyChart(monthKey) {
+    const chart = CHART_INSTANCES.weekly;
+    if (!chart) return;
+
+    const data = Transactions.getWeeklyBreakdown(monthKey);
+    chart.data.labels = data.map(d => d.week);
+    chart.data.datasets[0].data = data.map(d => d.income);
+    chart.data.datasets[1].data = data.map(d => d.expenses);
+    chart.update();
+  }
+
   // Convenience method called by Dashboard.renderDashboard() to
   // refresh every chart in a single call.
   function updateAllCharts(monthKey) {
@@ -467,6 +578,8 @@ const Charts = (() => {
     updateYoYChart();
     updateHeatmapChart(monthKey);
     updateForecastChart();
+    updateCategoryTrendChart();
+    updateWeeklyChart(monthKey);
   }
 
   /* ═══════════════════════════════════════════════
@@ -482,5 +595,7 @@ const Charts = (() => {
     updateYoYChart,
     updateHeatmapChart,
     updateForecastChart,
+    updateCategoryTrendChart,
+    updateWeeklyChart,
   };
 })();

@@ -128,6 +128,170 @@ const Dashboard = (() => {
   }
 
   /* ═══════════════════════════════════════════════
+     WIDGETS
+  ═══════════════════════════════════════════════ */
+
+  function renderSpendingStreak(monthKey) {
+    const container = document.getElementById('spending-streak');
+    if (!container) return;
+
+    const streak = Transactions.getSpendingStreak(monthKey);
+    if (streak.currentStreak === 0 && streak.longestStreak === 0) {
+      container.innerHTML = '';
+      container.hidden = true;
+      return;
+    }
+
+    container.hidden = false;
+    container.innerHTML = `
+      <div class="streak-card">
+        <div class="streak-card__current">
+          <span class="streak-card__number">${streak.currentStreak}</span>
+          <span class="streak-card__label">day${streak.currentStreak !== 1 ? 's' : ''} no-spend streak</span>
+        </div>
+        <div class="streak-card__best">
+          Best this month: ${streak.longestStreak} day${streak.longestStreak !== 1 ? 's' : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderBudgetPace(monthKey) {
+    const container = document.getElementById('budget-pace');
+    if (!container) return;
+
+    const pace = Transactions.getBudgetPace(monthKey);
+    if (!pace || pace.daysElapsed === 0) {
+      container.innerHTML = '';
+      container.hidden = true;
+      return;
+    }
+
+    const settings = Store.getSettings();
+    container.hidden = false;
+    const statusClass = pace.onTrack ? 'pace-card--on-track' : 'pace-card--over';
+    const statusLabel = pace.onTrack ? 'On Track' : 'Over Budget Pace';
+
+    container.innerHTML = `
+      <div class="pace-card ${statusClass}">
+        <div class="pace-card__header">
+          <span class="pace-card__status">${statusLabel}</span>
+          <span class="pace-card__rate">${Utils.formatCurrency(pace.dailyRate, settings)}/day</span>
+        </div>
+        <div class="pace-card__detail">
+          Projected month-end: ${Utils.formatCurrency(pace.projected, settings)}
+          (${pace.daysElapsed} of ${pace.daysInMonth} days)
+        </div>
+      </div>
+    `;
+  }
+
+  function renderTopMerchants(monthKey) {
+    const container = document.getElementById('top-merchants');
+    if (!container) return;
+
+    const top = Transactions.getTopDescriptions(monthKey, 5);
+    if (!top || top.length === 0) {
+      container.innerHTML = '';
+      container.hidden = true;
+      return;
+    }
+
+    const settings = Store.getSettings();
+    container.hidden = false;
+
+    container.innerHTML = `
+      <div class="merchants-card">
+        <h3 class="merchants-card__title">Top Spending</h3>
+        <ul class="merchants-list">
+          ${top.map((item, i) => `
+            <li class="merchants-list__item">
+              <span class="merchants-list__rank">${i + 1}</span>
+              <span class="merchants-list__name">${item.description}</span>
+              <span class="merchants-list__count">${item.count}x</span>
+              <span class="merchants-list__total">${Utils.formatCurrency(item.total, settings)}</span>
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  function renderBillReminders() {
+    const container = document.getElementById('bill-reminders');
+    if (!container) return;
+
+    const recurring = Store.getRecurring().filter(r => r.isActive && r.type === 'expense');
+    if (recurring.length === 0) {
+      container.innerHTML = '';
+      container.hidden = true;
+      return;
+    }
+
+    const settings = Store.getSettings();
+    const today = new Date();
+    const currentDay = today.getDate();
+    const categories = Store.getCategories();
+    const catMap = {};
+    for (const c of categories) catMap[c.id] = c;
+
+    const upcoming = recurring
+      .map(r => {
+        const cat = catMap[r.categoryId];
+        const daysUntil = r.dayOfMonth >= currentDay ? r.dayOfMonth - currentDay : (new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate() - currentDay + r.dayOfMonth);
+        return { ...r, catName: cat ? cat.name : 'Unknown', catColor: cat ? cat.color : '#94a3b8', daysUntil };
+      })
+      .sort((a, b) => a.daysUntil - b.daysUntil)
+      .slice(0, 5);
+
+    container.hidden = false;
+    container.innerHTML = `
+      <div class="reminders-card">
+        <h3 class="reminders-card__title">Upcoming Bills</h3>
+        <ul class="reminders-list">
+          ${upcoming.map(r => `
+            <li class="reminders-list__item">
+              <span class="reminders-list__dot" style="background:${r.catColor}"></span>
+              <span class="reminders-list__name">${r.description || r.catName}</span>
+              <span class="reminders-list__amount">${Utils.formatCurrency(r.amount, settings)}</span>
+              <span class="reminders-list__due">${r.daysUntil === 0 ? 'Today' : r.daysUntil === 1 ? 'Tomorrow' : r.daysUntil + ' days'}</span>
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  function renderSavingsSuggestion(monthKey) {
+    const container = document.getElementById('savings-suggestion');
+    if (!container) return;
+
+    const summary = Transactions.summarizeMonth(monthKey);
+    const settings = Store.getSettings();
+
+    if (summary.net <= 0) {
+      container.innerHTML = '';
+      container.hidden = true;
+      return;
+    }
+
+    const suggestedSave = Math.round(summary.net * 0.2 * 100) / 100;
+    container.hidden = false;
+    container.innerHTML = `
+      <div class="suggestion-card">
+        <div class="suggestion-card__icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm0 3v5l3.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="suggestion-card__text">
+          <span class="suggestion-card__label">Savings Suggestion</span>
+          <span class="suggestion-card__amount">Save ${Utils.formatCurrency(suggestedSave, settings)} this month</span>
+          <span class="suggestion-card__detail">20% of your ${Utils.formatCurrency(summary.net, settings)} surplus</span>
+        </div>
+      </div>
+    `;
+  }
+
+  /* ═══════════════════════════════════════════════
      PUBLIC: Render / Update
   ═══════════════════════════════════════════════ */
 
@@ -138,6 +302,11 @@ const Dashboard = (() => {
     renderMonthLabels(monthKey);
     renderSummaryCards(data);
     renderBudgetWarnings(data.categoryBreakdown);
+    renderSpendingStreak(monthKey);
+    renderBudgetPace(monthKey);
+    renderTopMerchants(monthKey);
+    renderBillReminders();
+    renderSavingsSuggestion(monthKey);
 
     // Insights
     const insights = Transactions.getInsights(monthKey);
@@ -167,5 +336,10 @@ const Dashboard = (() => {
     renderDashboard,
     updateDashboard,
     computeDashboardData,
+    renderSpendingStreak,
+    renderBudgetPace,
+    renderTopMerchants,
+    renderBillReminders,
+    renderSavingsSuggestion,
   };
 })();
