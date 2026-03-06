@@ -1,0 +1,3 @@
+server/.env
+server/jentrak.db
+server/node_modules/

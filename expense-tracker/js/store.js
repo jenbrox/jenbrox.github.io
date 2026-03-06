@@ -140,7 +140,7 @@ const Store = (() => {
   }
 
   /* ═══════════════════════════════════════════════
-     PERSIST HELPER — writes cache to IndexedDB
+     PERSIST HELPER — writes cache to IndexedDB + server
   ═══════════════════════════════════════════════ */
 
   function persist(storeName, key, data) {
@@ -155,6 +155,11 @@ const Store = (() => {
       idbPut(storeName, 'data', data).catch(e => {
         console.warn(`[Store] IndexedDB persist failed for ${storeName}:`, e);
       });
+    }
+
+    // Sync to server if authenticated
+    if (typeof Auth !== 'undefined' && Auth.isLoggedIn()) {
+      Auth.saveStore(storeName, data);
     }
   }
 
@@ -215,6 +220,34 @@ const Store = (() => {
       await migrateToIndexedDB();
     } catch (e) {
       console.warn('[Store] Running in localStorage-only mode.');
+    }
+
+    // 3. If authenticated, load data from server (overrides local)
+    if (typeof Auth !== 'undefined' && Auth.isLoggedIn()) {
+      try {
+        const serverData = await Auth.loadAllData();
+        if (serverData && Object.keys(serverData).length > 0) {
+          // Server has data — use it
+          for (const storeName of STORES) {
+            if (serverData[storeName] !== undefined) {
+              _cache[storeName] = serverData[storeName];
+            }
+          }
+        } else if (_cache.transactions.length > 0 || _cache.categories.length > 0) {
+          // Server empty but local has data — push local to server (first-time migration)
+          const stores = {};
+          for (const storeName of STORES) {
+            if (_cache[storeName] !== null && (Array.isArray(_cache[storeName]) ? _cache[storeName].length > 0 : true)) {
+              stores[storeName] = _cache[storeName];
+            }
+          }
+          if (Object.keys(stores).length > 0) {
+            Auth.saveAllStores(stores);
+          }
+        }
+      } catch (e) {
+        console.warn('[Store] Server sync failed, using local data.');
+      }
     }
   }
 

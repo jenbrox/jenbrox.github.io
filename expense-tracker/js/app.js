@@ -78,6 +78,41 @@ async function init() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
+
+  // 7. Setup user menu
+  setupUserMenu();
+}
+
+function setupUserMenu() {
+  const btn = document.getElementById('btn-user-menu');
+  const dropdown = document.getElementById('user-dropdown');
+  const nameEl = document.getElementById('user-dropdown-name');
+  const emailEl = document.getElementById('user-dropdown-email');
+  const logoutBtn = document.getElementById('btn-logout');
+
+  if (!btn || !dropdown) return;
+
+  // Populate user info
+  const user = Auth.getUser();
+  if (user) {
+    if (nameEl) nameEl.textContent = user.name || 'User';
+    if (emailEl) emailEl.textContent = user.email || '';
+  }
+
+  // Toggle dropdown
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.hidden = !dropdown.hidden;
+  });
+
+  // Close on outside click
+  document.addEventListener('click', () => { dropdown.hidden = true; });
+  dropdown.addEventListener('click', (e) => e.stopPropagation());
+
+  // Logout
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => Auth.logout());
+  }
 }
 
 /* ═══════════════════════════════════════════════
