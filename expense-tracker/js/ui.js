@@ -1,5 +1,5 @@
 /* ===================================================
-   EXPENSE TRACKER — UI
+   JENTRAX — UI
    Navigation, modals, toasts, form helpers,
    and list renderers.
    Depends on: Utils, Store, Transactions, Categories
@@ -147,6 +147,9 @@ const UI = (() => {
     // Description
     document.getElementById('txn-description').value = isEdit ? transaction.description : '';
 
+    // Tags
+    document.getElementById('txn-tags').value = isEdit && transaction.tags ? transaction.tags.join(', ') : '';
+
     // Category dropdown
     populateCategoryDropdown('txn-category', isEdit ? transaction.categoryId : '', type);
 
@@ -211,6 +214,7 @@ const UI = (() => {
     const categoryId = document.getElementById('txn-category').value;
     const date = document.getElementById('txn-date').value;
     const description = document.getElementById('txn-description').value;
+    const tags = document.getElementById('txn-tags').value;
 
     const errors = {};
 
@@ -233,7 +237,7 @@ const UI = (() => {
     return {
       valid,
       errors,
-      data: { id, type, amount, categoryId, date, description },
+      data: { id, type, amount, categoryId, date, description, tags },
     };
   }
 
@@ -380,7 +384,7 @@ const UI = (() => {
     categories.forEach(c => { catMap[c.id] = c; });
 
     if (!transactions || transactions.length === 0) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No transactions found. Try adjusting your filters or adding a new one!</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No transactions found. Try adjusting your filters or adding a new one!</td></tr>';
       tfoot.hidden = true;
       return;
     }
@@ -410,6 +414,7 @@ const UI = (() => {
             </span>
           </td>
           <td class="col-desc">${escapeHtml(t.description || '—')}</td>
+          <td class="col-tags">${(t.tags && t.tags.length) ? t.tags.map(tag => `<span class="tag-badge">${escapeHtml(tag)}</span>`).join(' ') : ''}</td>
           <td class="col-amount amount--${t.type}">${t.type === 'income' ? '+' : '-'}${amount}</td>
           <td class="col-actions">
             <div class="row-actions">
@@ -485,6 +490,378 @@ const UI = (() => {
             <button class="btn btn-ghost btn-icon" data-delete-cat="${escapeHtml(cat.id)}" aria-label="Delete ${escapeHtml(cat.name)}" title="Delete" style="color:var(--color-expense)">
               <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M3 4h9M6 4V2.5h3V4M5.5 4v7.5h4V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  /* ═══════════════════════════════════════════════
+     RECURRING TRANSACTION FORM
+  ═══════════════════════════════════════════════ */
+
+  function populateRecurringForm(rec) {
+    const isEdit = !!rec;
+
+    document.getElementById('rec-modal-title').textContent = isEdit ? 'Edit Recurring Transaction' : 'Add Recurring Transaction';
+    document.getElementById('rec-submit-btn').textContent = isEdit ? 'Save Changes' : 'Add Recurring';
+    document.getElementById('rec-edit-id').value = isEdit ? rec.id : '';
+
+    clearRecurringFormErrors();
+
+    const radios = document.querySelectorAll('input[name="rec-type"]');
+    const type = isEdit ? rec.type : 'expense';
+    radios.forEach(r => { r.checked = r.value === type; });
+
+    document.getElementById('rec-amount').value = isEdit ? rec.amount : '';
+    document.getElementById('rec-day').value = isEdit ? rec.dayOfMonth : '1';
+    document.getElementById('rec-description').value = isEdit ? rec.description : '';
+    document.getElementById('rec-start-date').value = isEdit ? rec.startDate : Utils.todayISO();
+    document.getElementById('rec-end-date').value = isEdit && rec.endDate ? rec.endDate : '';
+
+    populateCategoryDropdown('rec-category', isEdit ? rec.categoryId : '', type);
+    syncCurrencyPrefixes();
+  }
+
+  function setupRecTypeToggleListener() {
+    document.querySelectorAll('input[name="rec-type"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        const currentCatId = document.getElementById('rec-category').value;
+        populateCategoryDropdown('rec-category', currentCatId, radio.value);
+      });
+    });
+  }
+
+  function getRecurringFormValues() {
+    const id = document.getElementById('rec-edit-id').value;
+    const type = document.querySelector('input[name="rec-type"]:checked')?.value || 'expense';
+    const amount = document.getElementById('rec-amount').value;
+    const categoryId = document.getElementById('rec-category').value;
+    const dayOfMonth = document.getElementById('rec-day').value;
+    const description = document.getElementById('rec-description').value;
+    const startDate = document.getElementById('rec-start-date').value;
+    const endDate = document.getElementById('rec-end-date').value;
+
+    const errors = {};
+
+    if (!Utils.isPositiveNumber(amount)) {
+      errors.amount = 'Enter a valid positive amount.';
+    }
+    if (!categoryId) {
+      errors.category = 'Please select a category.';
+    }
+    const day = parseInt(dayOfMonth, 10);
+    if (isNaN(day) || day < 1 || day > 28) {
+      errors.day = 'Day must be between 1 and 28.';
+    }
+
+    const valid = Object.keys(errors).length === 0;
+    if (!valid) showRecurringFormErrors(errors);
+
+    return {
+      valid,
+      errors,
+      data: { id, type, amount, categoryId, dayOfMonth, description, startDate, endDate },
+    };
+  }
+
+  function showRecurringFormErrors(errors) {
+    clearRecurringFormErrors();
+    if (errors.amount) {
+      document.getElementById('rec-amount').classList.add('error');
+      showFieldError('rec-amount-error', errors.amount);
+    }
+    if (errors.category) {
+      document.getElementById('rec-category').classList.add('error');
+      showFieldError('rec-category-error', errors.category);
+    }
+    if (errors.day) {
+      document.getElementById('rec-day').classList.add('error');
+      showFieldError('rec-day-error', errors.day);
+    }
+  }
+
+  function clearRecurringFormErrors() {
+    ['rec-amount', 'rec-category', 'rec-day'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('error');
+    });
+    ['rec-amount-error', 'rec-category-error', 'rec-day-error'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.hidden = true; el.textContent = ''; }
+    });
+  }
+
+  /* ═══════════════════════════════════════════════
+     RECURRING LIST RENDERER
+  ═══════════════════════════════════════════════ */
+
+  function renderRecurringList() {
+    const recurring = Recurring.getAllRecurring();
+    const container = document.getElementById('recurring-list');
+    const settings = Store.getSettings();
+    const categories = Store.getCategories();
+    const catMap = {};
+    categories.forEach(c => { catMap[c.id] = c; });
+
+    if (recurring.length === 0) {
+      container.innerHTML = '<p class="empty-state">No recurring transactions yet. Click "Add Recurring" to set up automatic monthly transactions.</p>';
+      return;
+    }
+
+    container.innerHTML = recurring.map(rec => {
+      const cat = catMap[rec.categoryId];
+      const catName = rec.categoryId === '__income__' ? 'Income'
+                    : cat ? cat.name : 'Unknown';
+      const catColor = cat ? cat.color : '#94a3b8';
+      const amount = Utils.formatCurrency(rec.amount, settings);
+      const ordinal = getOrdinal(rec.dayOfMonth);
+      const statusClass = rec.isActive ? 'recurring-card--active' : 'recurring-card--paused';
+      const statusLabel = rec.isActive ? 'Active' : 'Paused';
+      const statusBadge = rec.isActive ? 'badge--income' : 'badge--expense';
+
+      return `
+        <div class="recurring-card ${statusClass}">
+          <div class="recurring-card__header">
+            <div class="recurring-card__info">
+              <span class="badge badge--${rec.type}">${rec.type === 'income' ? 'Income' : 'Expense'}</span>
+              <span class="badge ${statusBadge}">${statusLabel}</span>
+            </div>
+            <div class="recurring-card__amount amount--${rec.type}">${rec.type === 'income' ? '+' : '-'}${amount}</div>
+          </div>
+          <div class="recurring-card__body">
+            <div class="recurring-card__desc">${escapeHtml(rec.description || 'No description')}</div>
+            <div class="recurring-card__meta">
+              <span style="display:inline-flex;align-items:center;gap:4px;">
+                <span style="width:8px;height:8px;border-radius:50%;background:${escapeHtml(catColor)};display:inline-block;"></span>
+                ${escapeHtml(catName)}
+              </span>
+              <span>Every ${ordinal} of the month</span>
+            </div>
+          </div>
+          <div class="recurring-card__actions">
+            <button class="btn btn-ghost btn-icon" data-toggle-rec="${escapeHtml(rec.id)}" aria-label="${rec.isActive ? 'Pause' : 'Activate'}" title="${rec.isActive ? 'Pause' : 'Activate'}">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                ${rec.isActive
+                  ? '<rect x="4" y="3" width="2.5" height="9" rx="0.5" fill="currentColor"/><rect x="8.5" y="3" width="2.5" height="9" rx="0.5" fill="currentColor"/>'
+                  : '<path d="M4 2.5l8 5-8 5V2.5z" fill="currentColor"/>'}
+              </svg>
+            </button>
+            <button class="btn btn-ghost btn-icon" data-edit-rec="${escapeHtml(rec.id)}" aria-label="Edit" title="Edit">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M11.5 1.5l2 2-9 9H2.5v-2l9-9z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="btn btn-ghost btn-icon" data-delete-rec="${escapeHtml(rec.id)}" aria-label="Delete" title="Delete" style="color:var(--color-expense)">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M3 4h9M6 4V2.5h3V4M5.5 4v7.5h4V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function getOrdinal(n) {
+    const s = ['th', 'st', 'nd', 'rd'];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  }
+
+  /* ═══════════════════════════════════════════════
+     GOALS FORM
+  ═══════════════════════════════════════════════ */
+
+  function populateGoalForm(goal) {
+    const isEdit = !!goal;
+
+    document.getElementById('goal-modal-title').textContent = isEdit ? 'Edit Goal' : 'Add Savings Goal';
+    document.getElementById('goal-submit-btn').textContent = isEdit ? 'Save Changes' : 'Add Goal';
+    document.getElementById('goal-edit-id').value = isEdit ? goal.id : '';
+
+    document.getElementById('goal-name').value = isEdit ? goal.name : '';
+    document.getElementById('goal-target').value = isEdit ? goal.targetAmount : '';
+    document.getElementById('goal-saved').value = isEdit ? goal.savedAmount : '';
+    document.getElementById('goal-deadline').value = isEdit && goal.deadline ? goal.deadline : '';
+
+    clearGoalFormErrors();
+    renderGoalColorPicker(isEdit ? goal.color : null);
+    syncCurrencyPrefixes();
+  }
+
+  function renderGoalColorPicker(selectedColor) {
+    const colors = Store.getPresetColors();
+    const picker = document.getElementById('goal-color-picker');
+    if (!picker) return;
+
+    const current = selectedColor || colors[0];
+    picker.innerHTML = '';
+
+    colors.forEach(color => {
+      const label = document.createElement('label');
+      label.className = 'color-swatch-label';
+      label.title = color;
+      label.style.color = color;
+
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'goal-color';
+      input.value = color;
+      input.checked = color === current;
+
+      const swatch = document.createElement('span');
+      swatch.className = 'color-swatch';
+      swatch.style.background = color;
+
+      label.appendChild(input);
+      label.appendChild(swatch);
+      picker.appendChild(label);
+    });
+  }
+
+  function getGoalFormValues() {
+    const id = document.getElementById('goal-edit-id').value;
+    const name = document.getElementById('goal-name').value;
+    const targetAmount = document.getElementById('goal-target').value;
+    const savedAmount = document.getElementById('goal-saved').value;
+    const deadline = document.getElementById('goal-deadline').value;
+    const color = document.querySelector('input[name="goal-color"]:checked')?.value || '#6C63FF';
+
+    const errors = {};
+    if (!name.trim()) errors.name = 'Goal name is required.';
+    if (!Utils.isPositiveNumber(targetAmount)) errors.target = 'Enter a valid target amount.';
+
+    const valid = Object.keys(errors).length === 0;
+    if (!valid) showGoalFormErrors(errors);
+
+    return { valid, errors, data: { id, name, targetAmount, savedAmount, deadline, color } };
+  }
+
+  function showGoalFormErrors(errors) {
+    clearGoalFormErrors();
+    if (errors.name) {
+      document.getElementById('goal-name').classList.add('error');
+      showFieldError('goal-name-error', errors.name);
+    }
+    if (errors.target) {
+      document.getElementById('goal-target').classList.add('error');
+      showFieldError('goal-target-error', errors.target);
+    }
+  }
+
+  function clearGoalFormErrors() {
+    ['goal-name', 'goal-target'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('error');
+    });
+    ['goal-name-error', 'goal-target-error'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.hidden = true; el.textContent = ''; }
+    });
+  }
+
+  /* ═══════════════════════════════════════════════
+     GOALS LIST RENDERER
+  ═══════════════════════════════════════════════ */
+
+  function renderGoalsList() {
+    const goals = Goals.getAllGoals();
+    const grid = document.getElementById('goals-grid');
+    const settings = Store.getSettings();
+
+    if (goals.length === 0) {
+      grid.innerHTML = '<p class="empty-state">No savings goals yet. Click "Add Goal" to start saving toward something!</p>';
+      return;
+    }
+
+    grid.innerHTML = goals.map(goal => {
+      const pct = goal.targetAmount > 0 ? Utils.clamp((goal.savedAmount / goal.targetAmount) * 100, 0, 100) : 0;
+      const isComplete = pct >= 100;
+      const remaining = Math.max(0, goal.targetAmount - goal.savedAmount);
+      const fillClass = isComplete ? 'progress-bar__fill--complete' : '';
+      const deadlineStr = goal.deadline ? Utils.formatDate(goal.deadline, settings.dateFormat) : '';
+
+      return `
+        <div class="goal-card ${isComplete ? 'goal-card--complete' : ''}">
+          <div class="goal-card__header">
+            <span class="goal-card__color" style="background:${escapeHtml(goal.color)}"></span>
+            <span class="goal-card__name">${escapeHtml(goal.name)}</span>
+            ${isComplete ? '<span class="badge badge--income">Reached!</span>' : ''}
+          </div>
+          <div class="goal-card__amounts">
+            <span class="goal-card__saved">${Utils.formatCurrency(goal.savedAmount, settings)}</span>
+            <span class="goal-card__target">of ${Utils.formatCurrency(goal.targetAmount, settings)}</span>
+          </div>
+          <div class="progress-bar progress-bar--goal">
+            <div class="progress-bar__fill ${fillClass}" style="width:${pct}%;background:${escapeHtml(goal.color)}"></div>
+          </div>
+          <div class="goal-card__meta">
+            <span>${Math.round(pct)}% saved</span>
+            ${!isComplete ? `<span>${Utils.formatCurrency(remaining, settings)} to go</span>` : ''}
+            ${deadlineStr ? `<span>Target: ${deadlineStr}</span>` : ''}
+          </div>
+          <div class="goal-card__actions">
+            ${!isComplete ? `
+            <button class="btn btn-secondary btn-sm" data-fund-goal="${escapeHtml(goal.id)}">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              Add Funds
+            </button>` : ''}
+            <button class="btn btn-ghost btn-icon" data-edit-goal="${escapeHtml(goal.id)}" aria-label="Edit" title="Edit">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M11.5 1.5l2 2-9 9H2.5v-2l9-9z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="btn btn-ghost btn-icon" data-delete-goal="${escapeHtml(goal.id)}" aria-label="Delete" title="Delete" style="color:var(--color-expense)">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M3 4h9M6 4V2.5h3V4M5.5 4v7.5h4V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  /* ═══════════════════════════════════════════════
+     INSIGHTS RENDERER
+  ═══════════════════════════════════════════════ */
+
+  const INSIGHT_ICONS = {
+    'arrow-up':     '<path d="M8 14V2M8 2L3 7M8 2l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+    'crown':        '<path d="M2 12l2-8 4 4 4-4 2 8H2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none"/>',
+    'calendar':     '<rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M2 7h12M5 1v3M11 1v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>',
+    'hash':         '<path d="M4 1v14M10 1v14M1 5h14M1 11h14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>',
+    'trending-up':  '<path d="M2 12l4-4 3 3 5-5M10 6h4v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+    'trending-down':'<path d="M2 4l4 4 3-3 5 5M10 10h4V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  };
+
+  function renderInsights(insights) {
+    const grid = document.getElementById('insights-grid');
+    if (!grid) return;
+
+    if (!insights || insights.length === 0) {
+      grid.innerHTML = '';
+      grid.style.display = 'none';
+      return;
+    }
+
+    grid.style.display = '';
+    const settings = Store.getSettings();
+
+    grid.innerHTML = insights.map(ins => {
+      let displayValue;
+      if (ins.isCount) {
+        displayValue = ins.value;
+      } else if (ins.isPercent) {
+        displayValue = `${ins.isNegative ? '-' : '+'}${Math.round(ins.value)}%`;
+      } else {
+        displayValue = Utils.formatCurrency(ins.value, settings);
+      }
+
+      const iconSvg = INSIGHT_ICONS[ins.icon] || INSIGHT_ICONS['hash'];
+
+      return `
+        <div class="insight-card">
+          <div class="insight-card__icon" style="background:${escapeHtml(ins.color)}20;color:${escapeHtml(ins.color)}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">${iconSvg}</svg>
+          </div>
+          <div class="insight-card__content">
+            <div class="insight-card__label">${escapeHtml(ins.label)}</div>
+            <div class="insight-card__value">${escapeHtml(String(displayValue))}</div>
+            <div class="insight-card__detail">${escapeHtml(ins.detail)}</div>
           </div>
         </div>
       `;
@@ -587,6 +964,14 @@ const UI = (() => {
     getCategoryFormValues,
     renderTransactionList,
     renderCategoryList,
+    populateRecurringForm,
+    setupRecTypeToggleListener,
+    getRecurringFormValues,
+    renderRecurringList,
+    populateGoalForm,
+    getGoalFormValues,
+    renderGoalsList,
+    renderInsights,
     populateFilterCategoryDropdown,
     loadSettingsForm,
     getSettingsFormValues,

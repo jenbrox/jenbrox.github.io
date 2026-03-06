@@ -1,5 +1,5 @@
 /* ===================================================
-   EXPENSE TRACKER — DASHBOARD
+   JENTRAX — DASHBOARD
    Computes and renders the dashboard view.
    All data is derived from store on each render.
    Depends on: Utils, Store, Transactions, Categories, UI, Charts
@@ -119,6 +119,11 @@ const Dashboard = (() => {
     renderMonthLabels(monthKey);
     renderSummaryCards(data);
     renderBudgetWarnings(data.categoryBreakdown);
+
+    // Insights
+    const insights = Transactions.getInsights(monthKey);
+    UI.renderInsights(insights);
+
     Charts.updateAllCharts(monthKey);
   }
 

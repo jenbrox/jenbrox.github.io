@@ -1,5 +1,5 @@
 /* ===================================================
-   EXPENSE TRACKER — APP
+   JENTRAX — APP
    Entry point: initializes and wires all modules.
    No business logic lives here.
    Depends on: Utils, Store, Transactions, Categories,
@@ -17,33 +17,56 @@ const AppState = {
   transactionMonth:   Utils.getCurrentMonthKey(),
   typeFilter:         'all',
   categoryFilter:     'all',
+  searchQuery:        '',
 };
 
 /* ═══════════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════════ */
 
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => init());
 
-function init() {
+async function init() {
+  // 0. Initialize IndexedDB store (migrates from localStorage if needed)
+  await Store.initStore();
+
   // 1. Seed default data (no-op if data already exists)
   Store.seedDefaultData();
 
   // 2. Initialize Chart.js instances (canvas must be in DOM)
   Charts.initCharts();
 
+  // 2b. Process recurring transactions for current month
+  const generated = Recurring.processRecurring();
+  if (generated > 0) {
+    setTimeout(() => UI.showToast(`${generated} recurring transaction${generated !== 1 ? 's' : ''} added for this month.`, 'success'), 500);
+  }
+
   // 3. Wire all event handlers
   setupNavigation();
   setupModalCloseHandlers();
   setupTransactionHandlers();
   setupCategoryHandlers();
+  setupRecurringHandlers();
+  setupGoalHandlers();
   setupSettingsHandlers();
   setupDataHandlers();
   setupMonthNavHandlers();
   setupFilterHandlers();
   UI.setupTypeToggleListener();
+  UI.setupRecTypeToggleListener();
 
-  // 4. Read initial section from URL hash
+  // 4. Initialize dark mode
+  setupDarkMode();
+
+  // 4b. Print report button
+  setupPrintHandler();
+
+  // 4c. Logo click navigates to dashboard
+  document.querySelector('.app-logo')?.addEventListener('click', () => navigateTo('dashboard'));
+  document.querySelector('.app-logo').style.cursor = 'pointer';
+
+  // 5. Read initial section from URL hash
   const hash = window.location.hash.replace('#', '') || 'dashboard';
   navigateTo(hash);
 }
@@ -53,7 +76,7 @@ function init() {
 ═══════════════════════════════════════════════ */
 
 function navigateTo(sectionId) {
-  const valid = ['dashboard', 'transactions', 'categories', 'settings'];
+  const valid = ['dashboard', 'transactions', 'categories', 'recurring', 'goals', 'settings'];
   const target = valid.includes(sectionId) ? sectionId : 'dashboard';
 
   UI.showSection(target);
@@ -65,6 +88,10 @@ function navigateTo(sectionId) {
     renderTransactionsView();
   } else if (target === 'categories') {
     renderCategoriesView();
+  } else if (target === 'recurring') {
+    renderRecurringView();
+  } else if (target === 'goals') {
+    renderGoalsView();
   } else if (target === 'settings') {
     UI.loadSettingsForm();
   }
@@ -107,11 +134,28 @@ function renderTransactionsView() {
 }
 
 function renderFilteredTransactions() {
-  const txns = Transactions.getFilteredTransactions(
+  let txns = Transactions.getFilteredTransactions(
     AppState.transactionMonth,
     AppState.typeFilter,
     AppState.categoryFilter
   );
+
+  // Apply search filter
+  if (AppState.searchQuery) {
+    const q = AppState.searchQuery.toLowerCase();
+    const categories = Store.getCategories();
+    const catMap = {};
+    categories.forEach(c => { catMap[c.id] = c.name.toLowerCase(); });
+
+    txns = txns.filter(t => {
+      const desc = (t.description || '').toLowerCase();
+      const catName = catMap[t.categoryId] || '';
+      const amount = String(t.amount);
+      const tags = (t.tags || []).join(' ').toLowerCase();
+      return desc.includes(q) || catName.includes(q) || amount.includes(q) || tags.includes(q);
+    });
+  }
+
   UI.renderTransactionList(txns);
 }
 
@@ -149,6 +193,15 @@ function setupFilterHandlers() {
     AppState.categoryFilter = e.target.value;
     renderFilteredTransactions();
   });
+
+  // Search input
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', Utils.debounce(e => {
+      AppState.searchQuery = e.target.value.trim();
+      renderFilteredTransactions();
+    }, 250));
+  }
 }
 
 /* ═══════════════════════════════════════════════
@@ -173,7 +226,10 @@ function setupModalCloseHandlers() {
 
   // Escape key
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') UI.closeAllModals();
+    if (e.key === 'Escape') {
+      closeTransactionPanel();
+      UI.closeAllModals();
+    }
   });
 
   // Click outside the dialog (on backdrop)
@@ -197,8 +253,12 @@ function setupTransactionHandlers() {
   // "+ Add Transaction" button (header)
   document.getElementById('btn-add-transaction')?.addEventListener('click', () => {
     UI.populateTransactionForm(null);
-    UI.openModal('transaction-modal');
+    openTransactionPanel();
   });
+
+  // Close panel buttons
+  document.getElementById('btn-close-panel')?.addEventListener('click', closeTransactionPanel);
+  document.getElementById('btn-cancel-panel')?.addEventListener('click', closeTransactionPanel);
 
   // Transaction form submit
   document.getElementById('transaction-form')?.addEventListener('submit', e => {
@@ -215,7 +275,7 @@ function setupTransactionHandlers() {
       const txn = Transactions.getTransactionById(editBtn.dataset.editTxn);
       if (txn) {
         UI.populateTransactionForm(txn);
-        UI.openModal('transaction-modal');
+        openTransactionPanel();
       }
     }
 
@@ -223,6 +283,27 @@ function setupTransactionHandlers() {
       handleDeleteTransaction(deleteBtn.dataset.deleteTxn);
     }
   });
+}
+
+function openTransactionPanel() {
+  document.getElementById('app-layout')?.classList.add('panel-open');
+  document.getElementById('transaction-panel')?.classList.add('open');
+  // Resize charts after the transition
+  setTimeout(() => {
+    if (typeof Charts !== 'undefined' && Charts.updateAllCharts) {
+      Charts.updateAllCharts(AppState.dashboardMonth);
+    }
+  }, 350);
+}
+
+function closeTransactionPanel() {
+  document.getElementById('app-layout')?.classList.remove('panel-open');
+  document.getElementById('transaction-panel')?.classList.remove('open');
+  setTimeout(() => {
+    if (typeof Charts !== 'undefined' && Charts.updateAllCharts) {
+      Charts.updateAllCharts(AppState.dashboardMonth);
+    }
+  }, 350);
 }
 
 async function handleTransactionSubmit() {
@@ -241,7 +322,7 @@ async function handleTransactionSubmit() {
     return;
   }
 
-  UI.closeModal('transaction-modal');
+  closeTransactionPanel();
   UI.showToast(data.id ? 'Transaction updated.' : 'Transaction added.', 'success');
 
   // Refresh views
@@ -342,6 +423,184 @@ async function handleDeleteCategory(id) {
 }
 
 /* ═══════════════════════════════════════════════
+   RECURRING VIEW & HANDLERS
+═══════════════════════════════════════════════ */
+
+function renderRecurringView() {
+  UI.renderRecurringList();
+}
+
+function setupRecurringHandlers() {
+  // "+ Add Recurring" button
+  document.getElementById('btn-add-recurring')?.addEventListener('click', () => {
+    UI.populateRecurringForm(null);
+    UI.openModal('recurring-modal');
+  });
+
+  // Recurring form submit
+  document.getElementById('recurring-form')?.addEventListener('submit', e => {
+    e.preventDefault();
+    handleRecurringSubmit();
+  });
+
+  // Edit / delete / toggle via delegation on recurring list
+  document.getElementById('recurring-list')?.addEventListener('click', e => {
+    const editBtn = e.target.closest('[data-edit-rec]');
+    const deleteBtn = e.target.closest('[data-delete-rec]');
+    const toggleBtn = e.target.closest('[data-toggle-rec]');
+
+    if (editBtn) {
+      const rec = Recurring.getRecurringById(editBtn.dataset.editRec);
+      if (rec) {
+        UI.populateRecurringForm(rec);
+        UI.openModal('recurring-modal');
+      }
+    }
+
+    if (deleteBtn) {
+      handleDeleteRecurring(deleteBtn.dataset.deleteRec);
+    }
+
+    if (toggleBtn) {
+      const newState = Recurring.toggleActive(toggleBtn.dataset.toggleRec);
+      UI.showToast(newState ? 'Recurring transaction activated.' : 'Recurring transaction paused.', 'success');
+      renderRecurringView();
+    }
+  });
+}
+
+async function handleRecurringSubmit() {
+  const { valid, data } = UI.getRecurringFormValues();
+  if (!valid) return;
+
+  let result;
+  if (data.id) {
+    result = Recurring.updateRecurring(data.id, data);
+  } else {
+    result = Recurring.addRecurring(data);
+  }
+
+  if (!result.success) {
+    UI.showToast(result.errors.join(' '), 'error');
+    return;
+  }
+
+  UI.closeModal('recurring-modal');
+  UI.showToast(data.id ? 'Recurring transaction updated.' : 'Recurring transaction added.', 'success');
+  renderRecurringView();
+}
+
+async function handleDeleteRecurring(id) {
+  const confirmed = await UI.showConfirm('Delete this recurring transaction? This will not remove already-generated transactions.', 'Delete', 'btn-danger');
+  if (!confirmed) return;
+
+  Recurring.deleteRecurring(id);
+  UI.showToast('Recurring transaction deleted.', 'success');
+  renderRecurringView();
+}
+
+/* ═══════════════════════════════════════════════
+   GOALS VIEW & HANDLERS
+═══════════════════════════════════════════════ */
+
+function renderGoalsView() {
+  UI.renderGoalsList();
+}
+
+function setupGoalHandlers() {
+  document.getElementById('btn-add-goal')?.addEventListener('click', () => {
+    UI.populateGoalForm(null);
+    UI.openModal('goal-modal');
+  });
+
+  document.getElementById('goal-form')?.addEventListener('submit', e => {
+    e.preventDefault();
+    handleGoalSubmit();
+  });
+
+  document.getElementById('goal-add-form')?.addEventListener('submit', e => {
+    e.preventDefault();
+    handleGoalAddFunds();
+  });
+
+  document.getElementById('goals-grid')?.addEventListener('click', e => {
+    const editBtn = e.target.closest('[data-edit-goal]');
+    const deleteBtn = e.target.closest('[data-delete-goal]');
+    const fundBtn = e.target.closest('[data-fund-goal]');
+
+    if (editBtn) {
+      const goal = Goals.getGoalById(editBtn.dataset.editGoal);
+      if (goal) {
+        UI.populateGoalForm(goal);
+        UI.openModal('goal-modal');
+      }
+    }
+
+    if (deleteBtn) {
+      handleDeleteGoal(deleteBtn.dataset.deleteGoal);
+    }
+
+    if (fundBtn) {
+      document.getElementById('goal-add-id').value = fundBtn.dataset.fundGoal;
+      document.getElementById('goal-add-amount').value = '';
+      UI.openModal('goal-add-modal');
+    }
+  });
+}
+
+async function handleGoalSubmit() {
+  const { valid, data } = UI.getGoalFormValues();
+  if (!valid) return;
+
+  let result;
+  if (data.id) {
+    result = Goals.updateGoal(data.id, data);
+  } else {
+    result = Goals.addGoal(data);
+  }
+
+  if (!result.success) {
+    UI.showToast(result.errors.join(' '), 'error');
+    return;
+  }
+
+  UI.closeModal('goal-modal');
+  UI.showToast(data.id ? 'Goal updated.' : 'Goal added.', 'success');
+  renderGoalsView();
+}
+
+function handleGoalAddFunds() {
+  const id = document.getElementById('goal-add-id').value;
+  const amount = document.getElementById('goal-add-amount').value;
+
+  if (!Utils.isPositiveNumber(amount)) {
+    UI.showToast('Enter a valid positive amount.', 'error');
+    return;
+  }
+
+  const result = Goals.addToGoal(id, parseFloat(amount));
+  if (!result.success) {
+    UI.showToast(result.errors.join(' '), 'error');
+    return;
+  }
+
+  UI.closeModal('goal-add-modal');
+  const goal = result.goal;
+  const pct = goal.targetAmount > 0 ? Math.round((goal.savedAmount / goal.targetAmount) * 100) : 0;
+  UI.showToast(pct >= 100 ? `Goal reached! Congratulations!` : `Added funds. ${pct}% of goal reached.`, 'success');
+  renderGoalsView();
+}
+
+async function handleDeleteGoal(id) {
+  const confirmed = await UI.showConfirm('Delete this savings goal? This cannot be undone.', 'Delete', 'btn-danger');
+  if (!confirmed) return;
+
+  Goals.deleteGoal(id);
+  UI.showToast('Goal deleted.', 'success');
+  renderGoalsView();
+}
+
+/* ═══════════════════════════════════════════════
    SETTINGS HANDLERS
 ═══════════════════════════════════════════════ */
 
@@ -369,7 +628,7 @@ function setupDataHandlers() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `expense-tracker-export-${Utils.todayISO()}.json`;
+    a.download = `jentrak-export-${Utils.todayISO()}.json`;
     a.click();
     URL.revokeObjectURL(url);
     UI.showToast('Data exported.', 'success');
@@ -382,7 +641,7 @@ function setupDataHandlers() {
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;
-    a.download = `expense-tracker-transactions-${Utils.todayISO()}.csv`;
+    a.download = `jentrak-transactions-${Utils.todayISO()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     UI.showToast('Transactions exported as CSV.', 'success');
@@ -390,7 +649,7 @@ function setupDataHandlers() {
 
   // Export Excel
   document.getElementById('btn-export-excel')?.addEventListener('click', () => {
-    const result = Store.exportExcel(`expense-tracker-export-${Utils.todayISO()}.xlsx`);
+    const result = Store.exportExcel(`jentrak-export-${Utils.todayISO()}.xlsx`);
     if (result.success) {
       UI.showToast('Data exported as Excel.', 'success');
     } else {
@@ -487,9 +746,40 @@ function setupDataHandlers() {
    HELPERS
 ═══════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════
+   DARK MODE
+═══════════════════════════════════════════════ */
+
+function setupDarkMode() {
+  const saved = localStorage.getItem('et_dark_mode');
+  if (saved === 'true') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+
+  document.getElementById('btn-dark-mode')?.addEventListener('click', () => {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    if (isDark) {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('et_dark_mode', 'false');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('et_dark_mode', 'true');
+    }
+  });
+}
+
 function updateMonthLabel(elId, monthKey) {
   const el = document.getElementById(elId);
   if (el) el.textContent = Utils.monthLabel(monthKey);
+}
+
+function setupPrintHandler() {
+  document.getElementById('btn-print-report')?.addEventListener('click', () => {
+    // Ensure we're on the dashboard
+    navigateTo('dashboard');
+    // Short delay to ensure the dashboard is rendered
+    setTimeout(() => window.print(), 200);
+  });
 }
 
 function refreshAllViews() {
@@ -497,4 +787,6 @@ function refreshAllViews() {
   renderDashboardView();
   if (UI.currentSection() === 'transactions') renderTransactionsView();
   if (UI.currentSection() === 'categories') renderCategoriesView();
+  if (UI.currentSection() === 'recurring') renderRecurringView();
+  if (UI.currentSection() === 'goals') renderGoalsView();
 }

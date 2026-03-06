@@ -1,5 +1,5 @@
 /* ===================================================
-   EXPENSE TRACKER — CATEGORIES
+   JENTRAX — CATEGORIES
    CRUD for categories (budget is a category property).
    Depends on: Utils, Store, Transactions
    =================================================== */

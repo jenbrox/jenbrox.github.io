@@ -1,20 +1,27 @@
 /* ===================================================
-   EXPENSE TRACKER — STORE
-   Single source of truth for localStorage.
-   No other module writes to localStorage directly.
+   JENTRAX — STORE
+   Single source of truth using IndexedDB with
+   localStorage fallback. No other module accesses
+   storage directly.
    =================================================== */
 
 'use strict';
 
 const Store = (() => {
 
-  const KEYS = {
+  const DB_NAME = 'ExpenseTrackerDB';
+  const DB_VERSION = 1;
+  const STORES = ['transactions', 'categories', 'settings', 'recurring', 'goals'];
+
+  const LS_KEYS = {
     TRANSACTIONS: 'et_transactions',
     CATEGORIES:   'et_categories',
     SETTINGS:     'et_settings',
+    RECURRING:    'et_recurring',
+    GOALS:        'et_goals',
   };
 
-  // Stable IDs for default categories (hardcoded so existing transactions stay valid after reset)
+  // Stable IDs for default categories
   const DEFAULT_CATEGORY_IDS = {
     HOUSING:       'cat_default_housing',
     FOOD:          'cat_default_food',
@@ -32,8 +39,117 @@ const Store = (() => {
     '#8b5cf6', '#06b6d4', '#84cc16', '#a16207',
   ];
 
-  /* ── Low-level R/W ── */
-  function load(key, defaultValue) {
+  /* ═══════════════════════════════════════════════
+     IN-MEMORY CACHE
+     All reads come from cache; writes go to cache
+     + async persist to IndexedDB.
+  ═══════════════════════════════════════════════ */
+
+  const _cache = {
+    transactions: [],
+    categories:   [],
+    settings:     null,
+    recurring:    [],
+    goals:        [],
+  };
+
+  let _db = null;
+  let _dbReady = false;
+
+  /* ═══════════════════════════════════════════════
+     INDEXEDDB SETUP
+  ═══════════════════════════════════════════════ */
+
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      if (!window.indexedDB) {
+        console.warn('[Store] IndexedDB not available, using localStorage only.');
+        reject(new Error('IndexedDB not supported'));
+        return;
+      }
+
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        STORES.forEach(name => {
+          if (!db.objectStoreNames.contains(name)) {
+            db.createObjectStore(name);
+          }
+        });
+      };
+
+      request.onsuccess = (e) => {
+        _db = e.target.result;
+        _dbReady = true;
+        resolve(_db);
+      };
+
+      request.onerror = (e) => {
+        console.warn('[Store] IndexedDB open failed:', e.target.error);
+        reject(e.target.error);
+      };
+    });
+  }
+
+  function idbGet(storeName, key) {
+    return new Promise((resolve, reject) => {
+      if (!_db) { resolve(null); return; }
+      const tx = _db.transaction(storeName, 'readonly');
+      const store = tx.objectStore(storeName);
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result ?? null);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function idbPut(storeName, key, value) {
+    return new Promise((resolve, reject) => {
+      if (!_db) { resolve(); return; }
+      const tx = _db.transaction(storeName, 'readwrite');
+      const store = tx.objectStore(storeName);
+      const req = store.put(value, key);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function idbClear(storeName) {
+    return new Promise((resolve, reject) => {
+      if (!_db) { resolve(); return; }
+      const tx = _db.transaction(storeName, 'readwrite');
+      const store = tx.objectStore(storeName);
+      const req = store.clear();
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  /* ═══════════════════════════════════════════════
+     PERSIST HELPER — writes cache to IndexedDB
+  ═══════════════════════════════════════════════ */
+
+  function persist(storeName, key, data) {
+    // Also write to localStorage as fallback
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (e) {
+      console.warn('[Store] localStorage write failed:', e);
+    }
+
+    if (_dbReady) {
+      idbPut(storeName, 'data', data).catch(e => {
+        console.warn(`[Store] IndexedDB persist failed for ${storeName}:`, e);
+      });
+    }
+  }
+
+  /* ═══════════════════════════════════════════════
+     LOAD FROM STORAGE — localStorage first (sync),
+     then upgrade to IndexedDB data if available
+  ═══════════════════════════════════════════════ */
+
+  function loadFromLocalStorage(key, defaultValue) {
     try {
       const raw = localStorage.getItem(key);
       if (raw === null) return defaultValue;
@@ -44,39 +160,99 @@ const Store = (() => {
     }
   }
 
-  function save(key, data) {
-    try {
-      localStorage.setItem(key, JSON.stringify(data));
-    } catch (e) {
-      console.error(`[Store] Failed to save "${key}":`, e);
+  function loadCacheFromLocalStorage() {
+    _cache.transactions = loadFromLocalStorage(LS_KEYS.TRANSACTIONS, []);
+    _cache.categories   = loadFromLocalStorage(LS_KEYS.CATEGORIES, []);
+    _cache.settings     = loadFromLocalStorage(LS_KEYS.SETTINGS, null);
+    _cache.recurring    = loadFromLocalStorage(LS_KEYS.RECURRING, []);
+    _cache.goals        = loadFromLocalStorage(LS_KEYS.GOALS, []);
+  }
+
+  async function migrateToIndexedDB() {
+    if (!_dbReady) return;
+
+    // For each store: if IndexedDB has data, use it; otherwise migrate from localStorage
+    for (const storeName of STORES) {
+      const existing = await idbGet(storeName, 'data');
+      if (existing !== null) {
+        // IndexedDB has data — update cache from it
+        _cache[storeName] = existing;
+      } else if (_cache[storeName] !== null && (Array.isArray(_cache[storeName]) ? _cache[storeName].length > 0 : true)) {
+        // Migrate localStorage data to IndexedDB
+        await idbPut(storeName, 'data', _cache[storeName]);
+      }
     }
   }
 
+  /* ═══════════════════════════════════════════════
+     INITIALIZE — called once from app.js
+  ═══════════════════════════════════════════════ */
+
+  async function initStore() {
+    // 1. Immediately load from localStorage (synchronous)
+    loadCacheFromLocalStorage();
+
+    // 2. Try to open IndexedDB and migrate
+    try {
+      await openDB();
+      await migrateToIndexedDB();
+    } catch (e) {
+      console.warn('[Store] Running in localStorage-only mode.');
+    }
+  }
+
+  /* ═══════════════════════════════════════════════
+     SYNCHRONOUS GETTERS / SETTERS (from cache)
+  ═══════════════════════════════════════════════ */
+
   /* ── Transactions ── */
   function getTransactions() {
-    return load(KEYS.TRANSACTIONS, []);
+    return _cache.transactions;
   }
 
   function saveTransactions(arr) {
-    save(KEYS.TRANSACTIONS, arr);
+    _cache.transactions = arr;
+    persist('transactions', LS_KEYS.TRANSACTIONS, arr);
   }
 
   /* ── Categories ── */
   function getCategories() {
-    return load(KEYS.CATEGORIES, []);
+    return _cache.categories;
   }
 
   function saveCategories(arr) {
-    save(KEYS.CATEGORIES, arr);
+    _cache.categories = arr;
+    persist('categories', LS_KEYS.CATEGORIES, arr);
+  }
+
+  /* ── Recurring ── */
+  function getRecurring() {
+    return _cache.recurring;
+  }
+
+  function saveRecurring(arr) {
+    _cache.recurring = arr;
+    persist('recurring', LS_KEYS.RECURRING, arr);
+  }
+
+  /* ── Goals ── */
+  function getGoals() {
+    return _cache.goals;
+  }
+
+  function saveGoals(arr) {
+    _cache.goals = arr;
+    persist('goals', LS_KEYS.GOALS, arr);
   }
 
   /* ── Settings ── */
   function getSettings() {
-    return load(KEYS.SETTINGS, getDefaultSettings());
+    return _cache.settings || getDefaultSettings();
   }
 
   function saveSettings(obj) {
-    save(KEYS.SETTINGS, obj);
+    _cache.settings = obj;
+    persist('settings', LS_KEYS.SETTINGS, obj);
   }
 
   function getDefaultSettings() {
@@ -90,7 +266,6 @@ const Store = (() => {
 
   /* ── Seed default data ── */
   function seedDefaultData() {
-    // Only seed categories if none exist
     if (getCategories().length === 0) {
       const defaults = [
         { id: DEFAULT_CATEGORY_IDS.HOUSING,       name: 'Housing',       color: '#6C63FF', monthlyBudget: 1200 },
@@ -105,18 +280,22 @@ const Store = (() => {
       saveCategories(defaults);
     }
 
-    // Only seed settings if none exist
-    if (localStorage.getItem(KEYS.SETTINGS) === null) {
+    if (_cache.settings === null) {
       saveSettings(getDefaultSettings());
     }
   }
 
-  /* ── Export / Import ── */
+  /* ═══════════════════════════════════════════════
+     EXPORT / IMPORT
+  ═══════════════════════════════════════════════ */
+
   function exportData() {
     return JSON.stringify({
       et_transactions: getTransactions(),
       et_categories:   getCategories(),
       et_settings:     getSettings(),
+      et_recurring:    getRecurring(),
+      et_goals:        getGoals(),
       exportedAt:      new Date().toISOString(),
       version:         1,
     }, null, 2);
@@ -133,6 +312,8 @@ const Store = (() => {
       saveTransactions(data.et_transactions);
       saveCategories(data.et_categories);
       saveSettings(data.et_settings);
+      if (Array.isArray(data.et_recurring)) saveRecurring(data.et_recurring);
+      if (Array.isArray(data.et_goals)) saveGoals(data.et_goals);
       return { success: true };
     } catch (e) {
       return { success: false, error: 'Invalid JSON file.' };
@@ -407,9 +588,20 @@ const Store = (() => {
   }
 
   function resetAllData() {
-    localStorage.removeItem(KEYS.TRANSACTIONS);
-    localStorage.removeItem(KEYS.CATEGORIES);
-    localStorage.removeItem(KEYS.SETTINGS);
+    _cache.transactions = [];
+    _cache.categories = [];
+    _cache.settings = null;
+    _cache.recurring = [];
+    _cache.goals = [];
+
+    // Clear localStorage
+    Object.values(LS_KEYS).forEach(key => localStorage.removeItem(key));
+
+    // Clear IndexedDB
+    if (_dbReady) {
+      STORES.forEach(name => idbClear(name).catch(() => {}));
+    }
+
     seedDefaultData();
   }
 
@@ -424,6 +616,7 @@ const Store = (() => {
 
   /* ── Public API ── */
   return {
+    initStore,
     getTransactions,
     saveTransactions,
     getCategories,
@@ -441,5 +634,9 @@ const Store = (() => {
     resetAllData,
     getPresetColors,
     getDefaultCategoryIds,
+    getRecurring,
+    saveRecurring,
+    getGoals,
+    saveGoals,
   };
 })();

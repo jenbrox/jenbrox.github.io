@@ -1,5 +1,5 @@
 /* ===================================================
-   EXPENSE TRACKER — UTILS
+   JENTRAX — UTILS
    Pure utility functions: no DOM access, no side effects.
    =================================================== */
 

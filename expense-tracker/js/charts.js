@@ -1,5 +1,5 @@
 /* ===================================================
-   EXPENSE TRACKER — CHARTS
+   JENTRAX — CHARTS
    Manages all Chart.js instances.
    Create once in initCharts(), update only thereafter.
    Depends on: Utils, Store, Transactions (global Chart)
@@ -142,6 +142,37 @@ const Charts = (() => {
       }
     );
 
+    // ── Year-over-Year Comparison ──
+    const yoyCanvas = document.getElementById('chart-yoy');
+    if (yoyCanvas) {
+      CHART_INSTANCES.yoy = new Chart(
+        yoyCanvas.getContext('2d'),
+        {
+          type: 'line',
+          data: { labels: [], datasets: [] },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'circle', padding: 16 } },
+              tooltip: {
+                callbacks: { label: currencyTooltipCallback },
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { callback: currencyAxisCallback },
+                grid: { color: 'rgba(0,0,0,.05)' },
+              },
+              x: { grid: { display: false } },
+            },
+          },
+        }
+      );
+    }
+
     // ── Monthly Trend Line ──
     CHART_INSTANCES.line = new Chart(
       document.getElementById('chart-trend-line').getContext('2d'),
@@ -247,10 +278,28 @@ const Charts = (() => {
     chart.update();
   }
 
+  function updateYoYChart() {
+    const chart = CHART_INSTANCES.yoy;
+    const card = document.getElementById('yoy-chart-card');
+    if (!chart || !card) return;
+
+    const yoyData = Transactions.getYearOverYearData();
+    if (yoyData.years.length < 2) {
+      card.style.display = 'none';
+      return;
+    }
+
+    card.style.display = '';
+    chart.data.labels = yoyData.monthLabels;
+    chart.data.datasets = yoyData.datasets;
+    chart.update();
+  }
+
   function updateAllCharts(monthKey) {
     updateCategoryPieChart(monthKey);
     updateBudgetBarChart(monthKey);
     updateTrendLineChart(6);
+    updateYoYChart();
   }
 
   /* ═══════════════════════════════════════════════
@@ -263,5 +312,6 @@ const Charts = (() => {
     updateCategoryPieChart,
     updateBudgetBarChart,
     updateTrendLineChart,
+    updateYoYChart,
   };
 })();
