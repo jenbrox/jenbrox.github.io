@@ -268,12 +268,6 @@ input, select, textarea {
   flex-shrink: 0;
 }
 
-.header-print-btn {
-  white-space: nowrap;
-  font-size: 0.8125rem;
-  padding: var(--space-xs) var(--space-sm);
-}
-
 /* Mobile-only dashboard bar (hidden on desktop) */
 .dash-mobile-bar {
   display: none;
@@ -501,13 +495,6 @@ input, select, textarea {
     grid-template-columns: 1fr;
   }
   /* Hide text labels on header buttons to save space */
-  .header-print-btn {
-    font-size: 0;
-    padding: 6px 10px;
-  }
-  .header-print-btn svg {
-    font-size: 1rem;
-  }
   #btn-add-transaction span {
     display: none;
   }
@@ -595,9 +582,6 @@ input, select, textarea {
   }
 
   /* ── Hide header print & month nav on mobile, show inline bar ── */
-  .header-print-btn {
-    display: none;
-  }
 
   .header-month-nav {
     display: none;
