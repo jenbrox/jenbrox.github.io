@@ -1,9 +1,30 @@
 /* ===================================================
-   JENTRAX — MAIN STYLES
-   Layout, CSS variables, responsive grid, navigation
+   JENTRAK — MAIN STYLESHEET
+
+   Provides the foundational layout and design tokens (colors, spacing, typography)
+   for the entire app. Uses CSS custom properties (variables) for theming and
+   consistency.
+
+   Structure:
+   - CSS Custom Properties (design tokens)
+   - Dark Mode Overrides
+   - Base Reset & Typography
+   - Layout (flexbox, grid)
+   - Navigation & Header
+   - Responsive Grid
+   - Utility Classes
+
+   Components are styled in components.css
+   Charts are styled in charts.css
    =================================================== */
 
-/* ── CSS Custom Properties ── */
+/**
+ * Design Tokens (CSS Custom Properties)
+ * All colors, spacing, and sizing defined here for consistency and easy theming.
+ * Dark mode uses [data-theme="dark"] selector to override these values.
+ */
+
+/* ── CSS Custom Properties (Design Tokens) ── */
 :root {
   /* Brand */
   --color-primary:        #6C63FF;

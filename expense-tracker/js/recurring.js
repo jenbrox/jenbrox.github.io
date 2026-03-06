@@ -1,14 +1,41 @@
 /* ===================================================
-   JENTRAX — RECURRING TRANSACTIONS
-   CRUD and auto-generation for recurring transactions.
-   Depends on: Utils, Store, Transactions
+   JENTRAK — RECURRING TRANSACTIONS
+
+   Manages recurring transactions (bills, subscriptions, salary, etc.)
+   and automatically generates individual transactions each month.
+
+   Auto-generation process:
+   - Runs on app init via processRecurring()
+   - Checks if a transaction was already generated for current month
+   - Skips if not yet due or already generated
+   - Constraints: dayOfMonth clamped to 1-28 to avoid end-of-month issues
+
+   Frequency support: daily, weekly, bi-weekly, monthly, yearly
+
+   Dependencies: Utils, Store, Transactions
    =================================================== */
 
 'use strict';
 
 const Recurring = (() => {
 
-  /* ── CRUD ── */
+  /* ── CRUD Operations ── */
+
+  /**
+   * Creates a new recurring transaction template
+   * Does not generate transactions immediately - only sets up the template
+   * Transactions are generated automatically on app init via processRecurring()
+   * @param {object} fields - Recurring template data
+   * @param {string} fields.type - 'income' or 'expense'
+   * @param {number} fields.amount - Amount (required, positive)
+   * @param {string} fields.categoryId - Category ID
+   * @param {string} [fields.description] - Description/purpose
+   * @param {string} [fields.frequency='monthly'] - 'daily', 'weekly', 'bi-weekly', 'monthly', 'yearly'
+   * @param {number} [fields.dayOfMonth=1] - Day of month to generate (1-28, defaults to 1)
+   * @param {string} [fields.startDate] - Start date (defaults to today)
+   * @param {string} [fields.endDate] - Optional end date (null = no end)
+   * @returns {object} {success: boolean, recurring: object, errors: string[]}
+   */
   function addRecurring(fields) {
     const { valid, errors } = validateFields(fields);
     if (!valid) return { success: false, errors };

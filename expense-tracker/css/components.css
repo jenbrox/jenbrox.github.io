@@ -1,10 +1,34 @@
 /* ===================================================
-   JENTRAX — COMPONENT STYLES
-   Buttons, cards, forms, badges, modals, toasts,
-   tables, progress bars, color pickers
+   JENTRAK — COMPONENT STYLES
+
+   Styles for all UI components used throughout the app.
+   Includes buttons, forms, modals, cards, badges, toasts, tables,
+   progress bars, and other interactive elements.
+
+   Design System:
+   - Follows main.css design tokens (colors, spacing, shadows)
+   - Uses CSS custom properties for consistency
+   - All components support dark mode automatically
+   - Transitions for smooth interactions
+
+   Component Categories:
+   - Buttons (primary, secondary, ghost, danger, icon)
+   - Forms (inputs, selects, checkboxes, date pickers)
+   - Cards (content containers with shadow)
+   - Badges (status indicators)
+   - Modals (dialogs with backdrop)
+   - Toasts (notifications)
+   - Tables (transaction lists)
+   - Progress Bars (budget tracking)
+   - Navigation
    =================================================== */
 
 /* ── Buttons ── */
+/**
+ * All buttons use flexbox for alignment and gap for icon+text spacing.
+ * Transition properties enable smooth hover/focus effects.
+ * Disabled state reduces opacity and prevents interaction.
+ */
 .btn {
   display: inline-flex;
   align-items: center;

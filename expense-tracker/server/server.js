@@ -1,3 +1,41 @@
+/**
+ * JENTRAK BACKEND — Express.js + SQLite Server
+ *
+ * Provides REST API endpoints for the Jentrak PWA expense tracker.
+ *
+ * Tech Stack:
+ * - Express.js 4.x
+ * - SQLite3 (better-sqlite3) with WAL mode for concurrent access
+ * - JWT authentication (jsonwebtoken)
+ * - Password hashing (bcryptjs, 10 rounds)
+ * - OAuth2 support (Google, Facebook, GitHub)
+ * - Helmet.js for security headers
+ * - CORS for cross-origin requests
+ *
+ * Routes:
+ * - /api/auth/* — Authentication (signup, login, OAuth, profile)
+ * - /api/data/* — User data sync (transactions, categories, etc.)
+ * - /api/track — Analytics event tracking
+ * - /api/admin/* — Admin dashboard endpoints
+ * - / — Static file serving (expense-tracker frontend)
+ *
+ * Database:
+ * - jentrak.db — SQLite database with 3 tables:
+ *   - users: User accounts
+ *   - user_data: Per-user app stores (8 stores per user)
+ *   - analytics_events: User activity tracking
+ *
+ * Security:
+ * - JWT tokens with 30-day expiry
+ * - Passwords hashed with bcryptjs (10 rounds)
+ * - Per-user data isolation on server
+ * - Helmet.js security headers
+ * - CORS configured for specific origins
+ * - Input validation on all endpoints
+ *
+ * Port: 5175 (default, configurable via PORT env var)
+ */
+
 'use strict';
 
 const express = require('express');
@@ -10,6 +48,12 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Database = require('better-sqlite3');
 const { OAuth2Client } = require('google-auth-library');
+
+/**
+ * Load environment variables from .env file
+ * Only loads variables not already set in process.env
+ * This allows environment to override .env during deployment
+ */
 
 // ── Load .env file if present ──
 const envPath = path.join(__dirname, '.env');
@@ -268,7 +312,41 @@ function httpsPost(url, postData, headers) {
   });
 }
 
-// ── Auth Routes ──
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * AUTH ROUTES — User Authentication & Account Management
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * POST /auth/signup — Register new user (email/password)
+ * POST /auth/login — Login with email/password
+ * POST /auth/google — Login with Google OAuth2 ID token
+ * POST /auth/facebook — Login with Facebook access token
+ * POST /auth/github — Login with GitHub authorization code
+ * GET /auth/providers — Check which OAuth providers are enabled
+ * GET /auth/me — Get current user info (requires JWT)
+ * PUT /auth/profile — Update user name/email (requires JWT)
+ * PUT /auth/password — Change password (requires JWT)
+ * PUT /auth/avatar — Upload avatar image (requires JWT)
+ * DELETE /auth/avatar — Remove avatar (requires JWT)
+ *
+ * All endpoints return { token, user } on success, except:
+ * - GET /auth/me returns { user }
+ * - GET /auth/providers returns { google, facebook, github }
+ * - DELETE /auth/avatar returns success message
+ *
+ * On login/signup, JWT is returned and should be stored by client.
+ * For subsequent requests, include header: Authorization: Bearer <token>
+ */
+
+// ── POST /auth/signup ──
+/**
+ * Register a new user with email and password
+ * - Validates email doesn't already exist
+ * - Validates password length (min 6 chars)
+ * - Hashes password with bcryptjs (10 rounds)
+ * - Creates user in database
+ * - Returns JWT token and user info
+ */
 app.post('/api/auth/signup', (req, res) => {
   const { email, name, password } = req.body;
 
@@ -545,6 +623,24 @@ app.delete('/api/auth/avatar', authenticate, (req, res) => {
   res.json({ success: true });
 });
 
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * DATA ROUTES — User Data Sync (All require JWT authentication)
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * GET /data — Get all user stores (transactions, categories, etc.)
+ * GET /data/:store — Get single store
+ * PUT /data/:store — Save single store (replaces entire store)
+ * PUT /data — Bulk save multiple stores at once
+ * DELETE /data — Delete all user data (irreversible)
+ *
+ * Stores are per-user, isolated on the server.
+ * Client can sync stores individually or bulk-save for efficiency.
+ *
+ * Valid store keys:
+ * - transactions, categories, settings, recurring, goals, debts, wishlist, accounts
+ */
+
 // ── Data Routes (user-scoped) ──
 const VALID_STORES = ['transactions', 'categories', 'settings', 'recurring', 'goals', 'debts', 'wishlist', 'accounts'];
 
@@ -601,7 +697,20 @@ app.delete('/api/data', authenticate, (req, res) => {
   res.json({ success: true });
 });
 
-// ── Page visit tracking ──
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * ANALYTICS ROUTES — Event Tracking
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * POST /api/track — Track user events (page views, link clicks)
+ * No authentication required (client-side tracking)
+ * Stores events in analytics_events table for admin dashboard
+ *
+ * Event types: 'page_view', 'link_click'
+ * Captures: event type, user agent, IP address, metadata
+ */
+
+// ── Analytics: Page visit tracking ──
 app.post('/api/track', (req, res) => {
   const { event, meta } = req.body;
   const allowed = ['page_view', 'link_click'];
@@ -610,7 +719,44 @@ app.post('/api/track', (req, res) => {
   res.json({ ok: true });
 });
 
-// ── Admin Auth Middleware ──
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * ADMIN ROUTES — Analytics Dashboard & User Management
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * All admin routes require HTTP Basic Auth (username: admin, password: from env)
+ * Endpoints provide analytics, user stats, and admin functions
+ *
+ * Statistics:
+ * - GET /admin/stats — Basic stats (total users, logins, pageviews)
+ * - GET /admin/stats/extended — Detailed analytics (retention, active users)
+ * - GET /admin/chart?days=30 — Event counts by day for charting
+ * - GET /admin/countries — Signups by country
+ * - GET /admin/peak-hours — Login activity by hour
+ * - GET /admin/browsers — User agent statistics
+ * - GET /admin/growth — User signups over time
+ *
+ * User Management:
+ * - GET /admin/users — List all users
+ * - GET /admin/user/:id — Get user detail
+ * - DELETE /admin/user/:id — Delete user and data (irreversible)
+ * - PUT /admin/user/:id/reset-password — Reset user password
+ *
+ * Events:
+ * - GET /admin/events — Recent analytics events
+ *
+ * Export:
+ * - GET /admin/export/users — CSV export of all users
+ * - GET /admin/export/events — CSV export of all events
+ */
+
+// ── Admin Auth Middleware (HTTP Basic Auth) ──
+/**
+ * Validates HTTP Basic Auth credentials for admin routes.
+ * Username: "admin"
+ * Password: ADMIN_PASSWORD environment variable
+ * Hardcoded fallback: "Jentrak123@"
+ */
 function adminAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Basic ')) {

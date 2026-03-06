@@ -1,150 +1,384 @@
-# Expense Tracker
+# Jentrak — Progressive Web App Expense Tracker
 
-A client-side expense tracking web app with CRUD transactions, category budget management, and interactive charts. Runs entirely in the browser — no server, no build tools, no dependencies beyond Chart.js (loaded from CDN).
+A full-featured expense tracker PWA with user authentication, cloud sync, real-time analytics, and offline support.
 
-**Live:** https://www.jenniferbroxson.com/expense-tracker/
-
----
-
-## Features
-
-- **Dashboard** — Monthly income, expenses, net balance, and remaining budget at a glance
-- **Charts** — Category spending (doughnut), budget vs actual (bar), 6-month trend (line)
-- **Transactions** — Add, edit, delete; filter by type and category; monthly navigation
-- **Categories** — Custom categories with optional monthly budget limits and progress bars
-- **Settings** — Overall monthly budget, currency symbol, date format
-- **Data management** — Export/import JSON, reset all data
-- **Fully offline** — All data in `localStorage`; charts require CDN internet access
+**Live**: https://www.jenniferbroxson.com/expense-tracker/
 
 ---
 
-## Folder Structure
+## ✨ Features
 
-```
-expense-tracker/
-├── index.html          # Single-page app shell
-├── css/
-│   ├── main.css        # Layout, CSS variables, responsive grid
-│   ├── components.css  # Cards, buttons, forms, badges, modals, toasts
-│   └── charts.css      # Chart container sizing
-├── js/
-│   ├── utils.js        # Pure utilities (formatting, dates, IDs)
-│   ├── store.js        # localStorage read/write layer
-│   ├── transactions.js # Transaction CRUD and aggregation queries
-│   ├── categories.js   # Category CRUD
-│   ├── ui.js           # Navigation, modals, toasts, form helpers, list renderers
-│   ├── dashboard.js    # Dashboard computation and rendering
-│   ├── charts.js       # Chart.js instance management
-│   └── app.js          # Entry point: initialization and event wiring
-└── README.md
-```
+### Core Expense Tracking
+- **Dashboard**: Monthly summary (income, expenses, net, remaining budget)
+- **Transactions**: Add/edit/delete income & expenses with tags
+- **Categories**: Custom categories with optional monthly budgets and progress bars
+- **Recurring**: Auto-generate monthly bills, subscriptions, salary
+- **Analytics**: Interactive charts (spending by category, budget progress, 6-month trends)
 
----
+### Advanced Features
+- **💰 Multi-Account**: Track checking, savings, credit, cash, investments
+- **💳 Debts**: Track loans you've given and owe (with partial settlements)
+- **🎯 Goals**: Set savings goals and track progress
+- **🛒 Wishlist**: Shopping list with priorities, prices, and URLs
+- **📊 Insights**: AI-powered spending insights and budget warnings
 
-## GitHub Pages Deployment
-
-### Option A — Deploy from a dedicated repo to a subdirectory
-
-This is the recommended approach if your main site (`www.jenniferbroxson.com`) is hosted separately.
-
-1. **Create a repository** named `expense-tracker` (or any name) on GitHub.
-
-2. **Push all files** to the `main` branch:
-   ```bash
-   cd path/to/expense-tracker
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git remote add origin https://github.com/YOUR_USERNAME/expense-tracker.git
-   git push -u origin main
-   ```
-
-3. **Enable GitHub Pages:**
-   - Go to your repository → **Settings** → **Pages**
-   - Source: `Deploy from a branch`
-   - Branch: `main`, Folder: `/ (root)`
-   - Click **Save**
-
-4. **Configure your custom domain:**
-   - Add a `CNAME` file to the repository root containing exactly:
-     ```
-     www.jenniferbroxson.com
-     ```
-   - In your DNS provider, add a CNAME record: `www` → `YOUR_USERNAME.github.io`
-   - GitHub will automatically provision HTTPS (may take up to 24 hours)
-
-5. **Verify the path** — because the repo is not at the root of your domain, you may need to configure where GitHub Pages serves it. If your main site is at the root, this app should appear at `/expense-tracker/` once GitHub Pages is configured.
-
-   > **Note:** GitHub Pages serves each repository at `username.github.io/repo-name` by default. With a custom domain configured at the user/org level, the path segment becomes `/repo-name/`. For a repo named `expense-tracker`, the app is at `/expense-tracker/`.
-
-### Option B — Add to your existing site repository
-
-If your main site lives in a single GitHub repo:
-
-1. Copy the `expense-tracker/` folder into your existing repo at the path `expense-tracker/`
-2. Push to the branch that GitHub Pages uses
-3. The app will be available at `www.jenniferbroxson.com/expense-tracker/`
-
-All asset paths in `index.html` use `./` relative paths (e.g., `./css/main.css`, `./js/app.js`), so the app works correctly regardless of which subdirectory it lives in.
+### Technical
+- **🔐 Authentication**: Email/password + OAuth (Google, Facebook, GitHub)
+- **☁️ Cloud Sync**: All data backed up and synced across devices
+- **📱 Progressive Web App**: Installable app, works offline
+- **📈 Analytics**: Admin dashboard with user stats and insights
+- **🌓 Dark Mode**: Automatic + manual toggle
+- **📲 Responsive**: Mobile-first design, works on any screen size
 
 ---
 
-## Local Development
+## 🏗️ Architecture
 
-No build step required. Open `index.html` directly or serve with any static file server:
+### Frontend Stack
+- **Framework**: Vanilla JavaScript (no dependencies except Chart.js)
+- **Storage**: Three-tier (in-memory → IndexedDB → server)
+- **PWA**: Service Worker for offline-first caching
+- **Charts**: Chart.js for data visualization
+- **Styling**: CSS with custom properties and dark mode support
 
+### Backend Stack
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Database**: SQLite with WAL mode
+- **Auth**: JWT + bcryptjs + OAuth2
+- **Security**: Helmet.js, CORS, password hashing
+
+### Three-Tier Data Persistence
+1. **In-Memory Cache** (instant, no persistence)
+2. **IndexedDB** (fast, persistent, offline-capable)
+3. **Server/SQLite** (reliable, synced across devices)
+
+---
+
+## 🚀 Getting Started
+
+### Option 1: Use the Hosted Version
+Simply visit https://www.jenniferbroxson.com/expense-tracker/ and create an account!
+
+### Option 2: Run Locally
+
+**Prerequisites:**
+- Node.js 14+ and npm
+- Git
+
+**Setup Backend:**
 ```bash
-# Python 3
-python -m http.server 8080
-
-# Node.js (npx)
-npx serve .
-
-# VS Code Live Server extension
-# Right-click index.html → Open with Live Server
+cd expense-tracker/server
+npm install
 ```
 
-Then visit `http://localhost:8080/expense-tracker/` (adjust path to match your setup).
+**Configure Environment** (create `.env`):
+```env
+JWT_SECRET=your_secret_key_here
+GOOGLE_CLIENT_ID=your_google_client_id
+FACEBOOK_APP_ID=your_facebook_app_id
+GITHUB_CLIENT_ID=your_github_client_id
+ADMIN_PASSWORD=admin_password_here
+```
 
-> **Note:** Opening `index.html` via `file://` in most browsers works fine. Chrome may restrict some features; use a local server if you encounter issues.
+**Start Server:**
+```bash
+npm start
+```
+
+Server runs on `http://localhost:5175`
+
+**Access Frontend:**
+- Open `http://localhost:5175` in your browser
+- Or serve the expense-tracker folder separately:
+  ```bash
+  python -m http.server 8000  # In the expense-tracker directory
+  # Visit http://localhost:8000
+  ```
 
 ---
 
-## Data Storage
+## 📖 Documentation
 
-All data is stored in the browser's `localStorage` under keys prefixed with `et_`:
+### Quick Links
+- **[Frontend Modules Guide](js/README.md)** - Architecture, data flow, module docs
+- **[Backend API Reference](server/README.md)** - All endpoints, database schema, auth flow
+- **[Parent README](../README.md)** - Overall project overview
 
-| Key | Contents |
-|-----|----------|
-| `et_transactions` | Array of transaction objects |
-| `et_categories` | Array of category objects |
-| `et_settings` | Settings object |
-
-Data is scoped to the origin (`www.jenniferbroxson.com`) and persists until cleared. Use **Settings → Export Data** to back up your data before clearing browser storage.
+### Key Files
+| File | Purpose |
+|------|---------|
+| `index.html` | Main SPA shell with all UI sections |
+| `login.html` | Login page |
+| `signup.html` | Registration page |
+| `admin.html` | Admin analytics dashboard |
+| `manifest.json` | PWA configuration |
+| `sw.js` | Service Worker (offline support) |
+| `js/app.js` | App initialization and routing |
+| `js/store.js` | Three-tier data persistence |
+| `server/server.js` | Express backend |
 
 ---
 
-## Offline Behavior
+## 🔐 Authentication
 
-All data management features (add/edit/delete transactions, categories, settings) work offline. The **charts require** Chart.js from jsDelivr CDN — if offline, the chart area will be empty but all other features remain functional.
+### Supported Methods
+1. **Email/Password**: Traditional registration and login
+2. **Google OAuth**: Single sign-on via Google
+3. **Facebook OAuth**: Single sign-on via Facebook
+4. **GitHub OAuth**: Single sign-on via GitHub
 
-To enable fully offline charts, download [Chart.js UMD](https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js), place it at `js/vendor/chart.umd.min.js`, and update the script tag in `index.html`:
+### How It Works
+1. User logs in → server validates and returns JWT token
+2. JWT stored in `localStorage` and included in all API requests
+3. Server validates token on each request
+4. Token expires after 30 days (user must re-login)
+5. All user data is isolated per user in database
 
-```html
-<!-- Replace: -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+### Social OAuth Setup
+For social login to work locally or in production:
 
-<!-- With: -->
-<script src="./js/vendor/chart.umd.min.js" defer></script>
+1. **Google**: Create OAuth2 credentials at [Google Cloud Console](https://console.cloud.google.com)
+   - Authorized redirect URIs: `http://localhost:5175/`, `https://www.jenniferbroxson.com/`
+   - Set `GOOGLE_CLIENT_ID` in `.env`
+
+2. **Facebook**: Create app at [Facebook Developers](https://developers.facebook.com)
+   - Valid OAuth redirect URIs: `http://localhost:5175/`, `https://www.jenniferbroxson.com/`
+   - Set `FACEBOOK_APP_ID` in `.env`
+
+3. **GitHub**: Create OAuth app at [GitHub Settings](https://github.com/settings/developers)
+   - Authorization callback URL: `http://localhost:5175/`, `https://www.jenniferbroxson.com/`
+   - Set `GITHUB_CLIENT_ID` in `.env`
+
+> **Note**: Social login buttons only appear if corresponding env vars are set
+
+---
+
+## 💾 Data Management
+
+### What Gets Stored
+- Transactions (income & expenses)
+- Categories and budgets
+- Recurring transaction templates
+- Savings goals
+- Debts and settlements
+- Wishlist items
+- Accounts and balances
+- User settings
+
+### Export/Import
+- **Export**: Download data as JSON or Excel (xlsx)
+- **Import**: Restore from previous export
+- **Reset**: Delete all data (careful!)
+
+---
+
+## 📊 Analytics & Admin Dashboard
+
+The admin dashboard provides insights:
+- **Total Users**: Signup count and growth
+- **Activity**: Login frequency, page views
+- **Usage**: Peak hours, top browsers, geographic distribution
+- **Engagement**: 7-day and 30-day active user rates
+- **Data Health**: Database size, user data storage usage
+- **User Management**: View users, reset passwords, delete users
+
+**Access**: `https://www.jenniferbroxson.com/expense-tracker/admin.html`
+**Default Credentials**: `admin` / `Jentrak123@` (change in `.env`)
+
+---
+
+## 🌐 Offline Support
+
+### Service Worker Strategy
+- **Cache-First**: Static assets (JS, CSS, HTML) served from cache with network fallback
+- **Network-First**: API requests always fetch fresh from server
+- **Skip Caching**: Login/signup pages and API routes never cached
+
+### Offline Capabilities
+✅ **Works Offline:**
+- View existing data
+- Create/edit transactions (syncs when online)
+- Navigate between sections
+- Dark mode toggle
+
+❌ **Needs Internet:**
+- Login/signup
+- Real-time data sync
+- OAuth providers
+- Charts (Chart.js from CDN)
+
+### Service Worker Caching
+The SW caches all app shell files during installation. When offline:
+1. User views cached pages with local data
+2. Changes made offline are stored locally
+3. When connection restored, changes sync to server
+4. Service Worker skips cache for API and auth routes
+
+---
+
+## 🎨 Customization
+
+### Theming
+Edit CSS custom properties in `expense-tracker/css/main.css`:
+```css
+:root {
+  --primary-color: #6C63FF;  /* Change app primary color */
+  --danger-color: #e74c3c;
+  --success-color: #27ae60;
+  /* ... more colors ... */
+}
+```
+
+### Preset Colors
+Categories come with 16 default colors. Edit in `js/store.js`:
+```javascript
+function seedDefaultData() {
+  // Modify color array here
+  const colors = ['#FF5733', '#33FF57', ...];
+}
 ```
 
 ---
 
-## Browser Support
+## 📱 Installing as App
 
-Works in all modern browsers (Chrome, Firefox, Safari, Edge). Requires:
-- `localStorage` support
-- `<dialog>` element support (Chrome 37+, Firefox 98+, Safari 15.4+)
-- CSS custom properties
+### On Mobile (iOS/Android)
+1. Open browser → visit app URL
+2. Tap **Share** → **Add to Home Screen**
+3. App appears as installed app with icon
 
-No polyfills are included.
+### On Desktop (Windows/Mac)
+1. Click **Install** button in browser address bar (if visible)
+2. App opens in windowed mode
+3. Accessible from Start Menu / Applications
+
+---
+
+## 🧪 Testing
+
+### Manual Testing Checklist
+- [ ] Create account with email
+- [ ] Login with password
+- [ ] Try OAuth (Google/Facebook/GitHub)
+- [ ] Add transaction and verify in dashboard
+- [ ] Create custom category with budget
+- [ ] Set up recurring transaction
+- [ ] Create savings goal
+- [ ] Export data to JSON
+- [ ] Go offline and verify app still works
+- [ ] Try dark mode toggle
+- [ ] Test responsive design on mobile
+
+### Admin Testing
+- [ ] Login to admin dashboard
+- [ ] View user stats
+- [ ] Check database size
+- [ ] View recent events
+- [ ] Export user list to CSV
+
+---
+
+## 🚀 Deployment
+
+### Frontend (GitHub Pages)
+Already configured in this repo:
+- Automatic deployment on push to main
+- CNAME configured for `www.jenniferbroxson.com`
+
+### Backend
+Deploy Node.js server to your choice of:
+- **Heroku** (simple, has free tier)
+- **DigitalOcean** (affordable VPS)
+- **AWS EC2** (scalable)
+- **Railway** (modern platform)
+- **Render** (easy deployment)
+
+**Requirements:**
+- Node.js 14+
+- Set environment variables on hosting platform
+- Configure HTTPS (required for OAuth)
+- For SQLite: Use WAL mode (already configured) for better concurrency
+
+**After Deployment:**
+- Update API endpoint in frontend if using custom server domain
+- Ensure CORS is configured correctly
+- Test OAuth redirects with production URLs
+
+---
+
+## 🔒 Security Considerations
+
+### Production Checklist
+- [ ] Change admin password in `.env`
+- [ ] Generate strong `JWT_SECRET`
+- [ ] Use HTTPS everywhere (enforced by OAuth)
+- [ ] Keep dependencies updated (`npm audit fix`)
+- [ ] Configure CORS for your domain only
+- [ ] Set secure database backups
+- [ ] Monitor admin dashboard for suspicious activity
+- [ ] Use environment variables for secrets (never commit `.env`)
+- [ ] Enable CSRF protection if adding forms
+
+---
+
+## 📊 Browser Support
+
+| Browser | Min Version | PWA Support |
+|---------|-------------|-------------|
+| Chrome | 90+ | ✅ Full |
+| Firefox | 88+ | ✅ Full |
+| Safari | 14+ | ⚠️ Limited |
+| Edge | 90+ | ✅ Full |
+
+**Safari PWA Notes:**
+- No service worker (uses app cache instead)
+- No installation prompt
+- Manual "Add to Home Screen" only
+
+---
+
+## 🐛 Troubleshooting
+
+### "App won't sync with server"
+- Check network connection
+- Verify JWT token hasn't expired
+- Check browser console for API errors
+- Ensure backend is running
+
+### "Charts not showing"
+- Check internet connection (Chart.js loads from CDN)
+- Disable ad blockers that might block CDN
+- Check browser console for errors
+
+### "Service Worker won't update"
+- Clear browser cache
+- Go to DevTools → Application → Clear Storage
+- Hard refresh (Ctrl+Shift+R)
+
+### "OAuth login not working"
+- Verify client ID is correct in `.env`
+- Check redirect URIs are configured in OAuth app settings
+- Ensure you're using HTTPS in production
+- Check console for specific error messages
+
+---
+
+## 📝 License & Credits
+
+- **Chart.js**: Charting library (Apache 2.0)
+- **SheetJS**: Excel export support
+- **Google Fonts**: Typography
+
+---
+
+## 📧 Support
+
+Found a bug or have a suggestion? Contact Jennifer:
+- **Email**: jenbrox@gmail.com
+- **GitHub Issues**: [Report on GitHub](https://github.com/jenbrox/jenbrox.github.io/issues)
+- **LinkedIn**: [Jennifer Broxson](https://www.linkedin.com/in/jenniferbroxson)
+
+---
+
+Last updated: March 2026

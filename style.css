@@ -1,70 +1,89 @@
+/* === BODY & MAIN LAYOUT === */
+/* Full-height viewport with centered flexbox layout */
 body {
     margin: 0;
     padding: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    /* Purple-to-blue diagonal gradient background */
     background: linear-gradient(135deg, #4b2ae0, #2aa7e0);
     color: white;
-    height: 100vh;
+    height: 100vh; /* Full viewport height */
     display: flex;
-    justify-content: center;
-    align-items: center;
+    justify-content: center; /* Center horizontally */
+    align-items: center; /* Center vertically */
     text-align: center;
 }
 
+/* === CONTAINER === */
+/* Max-width wrapper for profile section */
 .container {
     max-width: 700px;
 }
 
+/* === HEADING === */
+/* Large profile name heading */
 h1 {
     font-size: 3em;
     margin: 0;
 }
 
+/* === SUBTITLE === */
+/* Professional descriptor below name */
 .subtitle {
     font-size: 1.2em;
     margin-top: 10px;
     margin-bottom: 30px;
 }
 
+/* === SOCIAL ICONS === */
+/* Social media icon links (LinkedIn, GitHub, Email) */
 .icons a {
     margin: 0 15px;
     font-size: 1.8em;
     color: white;
-    transition: color 0.3s;
+    transition: color 0.3s; /* Smooth color transition on hover */
 }
 
+/* Social icon hover effect: change to gold color */
 .icons a:hover {
     color: #ffd700;
 }
 
+/* === NAVIGATION MENU === */
+/* Menu container for navigation links */
 .menu {
     margin-top: 25px;
 }
 
+/* Menu link styling */
 .menu a {
     margin: 0 20px;
     font-size: 1em;
     text-decoration: none;
     color: white;
-    border-bottom: 1px solid transparent;
-    transition: border-bottom 0.3s;
+    border-bottom: 1px solid transparent; /* Invisible bottom border by default */
+    transition: border-bottom 0.3s; /* Smooth border transition on hover */
 }
 
+/* Menu link hover effect: show white underline */
 .menu a:hover {
     border-bottom: 1px solid white;
 }
 
+/* === HOME LINK === */
+/* Fixed-position "back to home" link for subpages */
 .home-link {
-  position: fixed;       /* stays in place even when scrolling */
-  top: 15px;             /* space from top edge */
-  left: 20px;            /* space from left edge */
+  position: fixed;       /* Stays in place even when scrolling */
+  top: 15px;             /* Space from top edge */
+  left: 20px;            /* Space from left edge */
   font-size: 1.1rem;
   font-weight: bold;
-  color: #ffffff;        /* white text */
+  color: #ffffff;        /* White text */
   text-decoration: none;
-  z-index: 1000;         /* on top of other elements */
+  z-index: 1000;         /* On top of other elements */
 }
 
+/* Home link hover effect: underline appears */
 .home-link:hover {
   text-decoration: underline;
 }

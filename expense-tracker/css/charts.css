@@ -1,13 +1,28 @@
 /* ===================================================
-   JENTRAX — CHART STYLES
-   Chart.js requires explicit container heights.
-   maintainAspectRatio: false is set in JS so the
-   canvas fills its wrapper completely.
+   JENTRAK — CHART STYLES
+
+   Styling for Chart.js containers and responsive sizing.
+
+   Key Points:
+   - Chart.js (via charts.js module) uses maintainAspectRatio: false
+     so canvas elements fill their container completely
+   - Container heights set explicitly to control chart proportions
+   - Media queries adjust heights for responsive design
+   - Wrapper uses position: relative for canvas positioning
+
+   Chart Types:
+   - Doughnut: Category spending breakdown
+   - Bar: Budget vs. actual comparison
+   - Line: 6-month trend
    =================================================== */
 
+/**
+ * Default chart container height
+ * Used for doughnut and bar charts
+ */
 .chart-wrapper {
-  position: relative;
-  height: 280px;
+  position: relative;  /* Allows canvas to position absolutely within */
+  height: 280px;      /* Chart.js canvas respects parent height */
 }
 
 .chart-wrapper--tall {
