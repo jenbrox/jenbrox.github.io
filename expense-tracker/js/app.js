@@ -1808,11 +1808,11 @@ function setupOnboarding() {
   }
 
   function finish() {
-    overlay.hidden = true;
+    overlay.classList.remove('visible');
     localStorage.setItem(ONBOARDING_KEY, 'true');
   }
 
-  nextBtn?.addEventListener('click', () => {
+  nextBtn.addEventListener('click', () => {
     if (currentStep < steps.length - 1) {
       currentStep++;
       renderStep();
@@ -1821,11 +1821,11 @@ function setupOnboarding() {
     }
   });
 
-  skipBtn?.addEventListener('click', finish);
+  skipBtn.addEventListener('click', finish);
 
   // Show onboarding
   renderStep();
-  overlay.hidden = false;
+  overlay.classList.add('visible');
 }
 
 /* ═══════════════════════════════════════════════
