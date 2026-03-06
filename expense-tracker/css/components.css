@@ -1,5 +1,5 @@
 /* ===================================================
-   EXPENSE TRACKER — COMPONENT STYLES
+   JENTRAX — COMPONENT STYLES
    Buttons, cards, forms, badges, modals, toasts,
    tables, progress bars, color pickers
    =================================================== */
@@ -70,6 +70,27 @@
   flex-shrink: 0;
 }
 
+/* ── Search Bar ── */
+.search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 180px;
+  max-width: 320px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.search-input {
+  padding-left: 36px !important;
+}
+
 /* ── Filter Button ── */
 .filter-btn {
   padding: 6px 14px;
@@ -91,64 +112,115 @@
   color: var(--color-primary);
 }
 
-/* ── Stat Cards ── */
+/* ── Stat Cards (Premium Gradient) ── */
 .stat-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg);
-  box-shadow: var(--shadow-sm);
+  border: none;
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg) var(--space-xl);
+  box-shadow: var(--shadow-md);
   position: relative;
   overflow: hidden;
+  color: #fff;
+  transition: box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  box-shadow: var(--shadow-lg);
 }
 
 .stat-card::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  top: -30%;
+  right: -20%;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.12);
 }
 
-.stat-card--income::before   { background: var(--color-income); }
-.stat-card--expense::before  { background: var(--color-expense); }
-.stat-card--net::before      { background: var(--color-primary); }
-.stat-card--budget::before   { background: var(--color-warning); }
+.stat-card::after {
+  content: '';
+  position: absolute;
+  bottom: -20%;
+  left: -10%;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.08);
+}
+
+.stat-card--income {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 50%, #15803d 100%);
+}
+
+.stat-card--expense {
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 50%, #be123c 100%);
+}
+
+.stat-card--net {
+  background: linear-gradient(135deg, #6C63FF 0%, #7c3aed 50%, #6d28d9 100%);
+}
+
+.stat-card--budget {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+}
 
 .stat-label {
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.8125rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text-muted);
+  letter-spacing: 0.06em;
+  color: rgba(255,255,255,.95);
   margin-bottom: var(--space-sm);
+  position: relative;
+  z-index: 1;
 }
 
 .stat-value {
   font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--color-text);
-  line-height: 1;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.15;
   margin-bottom: var(--space-xs);
+  position: relative;
+  z-index: 1;
 }
 
-.stat-value--positive { color: var(--color-income); }
-.stat-value--negative { color: var(--color-expense); }
+.stat-value--positive { color: #fff; }
+.stat-value--negative { color: #fff; }
 
 .stat-sub {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  color: rgba(255,255,255,.9);
+  position: relative;
+  z-index: 1;
 }
 
-/* ── Chart Cards ── */
+/* ── Chart Cards (Premium Glass) ── */
 .chart-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+
+.chart-card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.chart-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--color-primary);
 }
 
 .chart-card__header {
@@ -161,12 +233,14 @@
 
 .chart-title {
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--color-text);
 }
 
 .chart-subtitle {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   color: var(--color-text-muted);
+  font-weight: 500;
 }
 
 /* ── Forms ── */
@@ -724,6 +798,234 @@
   border: 1px solid rgba(239,68,68,.3);
 }
 
+/* ── Goal Cards ── */
+.goals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-lg);
+}
+
+.goal-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.goal-card--complete {
+  border-color: var(--color-income);
+}
+
+.goal-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.goal-card__color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.goal-card__name {
+  font-weight: 600;
+  font-size: 1rem;
+  flex: 1;
+}
+
+.goal-card__amounts {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.goal-card__saved {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.goal-card__target {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.progress-bar--goal {
+  height: 10px;
+  margin-bottom: var(--space-md);
+}
+
+.progress-bar__fill--complete {
+  background: var(--color-income) !important;
+}
+
+.goal-card__meta {
+  display: flex;
+  gap: var(--space-lg);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-md);
+}
+
+.goal-card__actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.btn-sm {
+  padding: 5px 12px;
+  font-size: 0.8125rem;
+}
+
+/* ── Recurring Cards ── */
+.recurring-info {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-lg);
+}
+
+.recurring-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.recurring-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+  transition: opacity 0.15s;
+}
+
+.recurring-card--paused {
+  opacity: 0.6;
+}
+
+.recurring-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.recurring-card__info {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.recurring-card__amount {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.recurring-card__body {
+  margin-bottom: var(--space-md);
+}
+
+.recurring-card__desc {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: var(--space-xs);
+}
+
+.recurring-card__meta {
+  display: flex;
+  gap: var(--space-lg);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.recurring-card__actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-md);
+}
+
+/* ── Tag Badges ── */
+.tag-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  margin: 1px 2px;
+  white-space: nowrap;
+}
+
+.col-tags {
+  min-width: 120px;
+}
+
+/* ── Insight Cards ── */
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.insight-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.insight-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.insight-card__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.insight-card__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+
+.insight-card__value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.insight-card__detail {
+  font-size: 0.75rem;
+  color: var(--color-text-faint);
+  margin-top: 2px;
+}
+
 /* ── Row action buttons ── */
 .row-actions {
   display: flex;
@@ -740,7 +1042,9 @@
     padding: var(--space-lg);
   }
   .table th.col-desc,
-  .table td.col-desc {
+  .table td.col-desc,
+  .table th.col-tags,
+  .table td.col-tags {
     display: none;
   }
   .toast-container {
@@ -751,5 +1055,90 @@
   .toast {
     min-width: 0;
     max-width: 100%;
+  }
+}
+
+/* ── Print Styles ── */
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 12pt;
+  }
+  .app-header,
+  .side-panel,
+  .toast-container,
+  dialog,
+  #btn-print-report,
+  #btn-add-transaction,
+  #btn-dark-mode,
+  .month-nav button,
+  .budget-warnings,
+  .row-actions,
+  .col-actions {
+    display: none !important;
+  }
+  .app-main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .app-layout {
+    display: block !important;
+  }
+  .section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .section[hidden] {
+    display: none !important;
+  }
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8px !important;
+  }
+  .stat-card {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .chart-card {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .charts-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .insight-card {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
+  .table-card {
+    box-shadow: none !important;
+  }
+  .section-title {
+    background: none !important;
+    -webkit-text-fill-color: #000 !important;
+    color: #000 !important;
+    font-size: 16pt !important;
+  }
+  .month-label {
+    font-size: 12pt;
+  }
+  /* Print header with title */
+  .section-header::before {
+    content: 'Jentrak Report';
+    display: block;
+    font-size: 18pt;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #333;
+  }
+  /* Only show the first section-header before content */
+  .section-header ~ .section-header::before {
+    display: none;
   }
 }

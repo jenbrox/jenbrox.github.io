@@ -1,5 +1,5 @@
 /* ===================================================
-   EXPENSE TRACKER — MAIN STYLES
+   JENTRAX — MAIN STYLES
    Layout, CSS variables, responsive grid, navigation
    =================================================== */
 
@@ -57,6 +57,38 @@
   --header-height: 64px;
 }
 
+/* ── Dark Mode ── */
+[data-theme="dark"] {
+  --color-primary-light:  #2d2a5e;
+
+  --color-income-bg:      #0a2e1a;
+  --color-expense-bg:     #2e0a0a;
+  --color-warning-bg:     #2e2505;
+
+  --color-bg:             #0f172a;
+  --color-surface:        #1e293b;
+  --color-border:         #334155;
+  --color-text:           #f1f5f9;
+  --color-text-muted:     #94a3b8;
+  --color-text-faint:     #64748b;
+
+  --shadow-sm:  0 1px 3px rgba(0,0,0,.2), 0 1px 2px rgba(0,0,0,.15);
+  --shadow-md:  0 4px 12px rgba(0,0,0,.3), 0 2px 6px rgba(0,0,0,.2);
+  --shadow-lg:  0 8px 24px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.25);
+}
+
+[data-theme="dark"] .modal::backdrop {
+  background: rgba(0,0,0,.6);
+}
+
+[data-theme="dark"] .warning-banner--warning {
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .warning-banner--danger {
+  color: #fca5a5;
+}
+
 /* ── Reset & Base ── */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -76,6 +108,9 @@ body {
   color: var(--color-text);
   line-height: 1.6;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 h1, h2, h3, h4 {
@@ -124,15 +159,25 @@ input, select, textarea {
   outline-offset: 2px;
 }
 
-/* ── App Header ── */
+/* ── App Header (Premium) ── */
 .app-header {
   position: sticky;
   top: 0;
   z-index: 100;
   height: var(--header-height);
   background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
+  border-bottom: none;
+  box-shadow: var(--shadow-md);
+}
+
+.app-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #6C63FF, #3b82f6, #22c55e, #f59e0b, #ec4899);
 }
 
 .header-inner {
@@ -189,9 +234,73 @@ input, select, textarea {
 }
 
 .nav-link.active {
-  background: var(--color-primary-light);
-  color: var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
   font-weight: 600;
+}
+
+/* ── App Layout (side panel + main) ── */
+.app-layout {
+  display: flex;
+  min-height: calc(100vh - var(--header-height));
+}
+
+.app-layout .app-main {
+  flex: 1;
+  min-width: 0;
+  transition: margin-left 0.3s cubic-bezier(.4,0,.2,1);
+}
+
+/* ── Side Panel ── */
+.side-panel {
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  bottom: 0;
+  width: 380px;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+  z-index: 90;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+  overflow-y: auto;
+}
+
+.side-panel.open {
+  transform: translateX(0);
+}
+
+.app-layout.panel-open .app-main {
+  margin-left: 380px;
+}
+
+.side-panel__inner {
+  padding: var(--space-xl);
+}
+
+.side-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-md);
+  border-bottom: 2px solid var(--color-primary);
+}
+
+.side-panel__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.side-panel__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-border);
 }
 
 /* ── Main Content ── */
@@ -222,7 +331,7 @@ input, select, textarea {
 
 .section-title {
   font-size: 1.5rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--color-text);
 }
 
@@ -235,6 +344,7 @@ input, select, textarea {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
   padding: var(--space-xs) var(--space-sm);
+  box-shadow: var(--shadow-sm);
 }
 
 .month-label {
@@ -324,6 +434,18 @@ input, select, textarea {
   .settings-layout {
     grid-template-columns: 1fr;
   }
+  /* Side panel overlays instead of pushing on tablets */
+  .app-layout.panel-open .app-main {
+    margin-left: 0;
+  }
+  .side-panel.open + .app-main::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,.35);
+    backdrop-filter: blur(2px);
+    z-index: 80;
+  }
 }
 
 @media (max-width: 768px) {
@@ -352,6 +474,9 @@ input, select, textarea {
   }
   #btn-add-transaction span {
     display: none;
+  }
+  .side-panel {
+    width: 100%;
   }
 }
 
