@@ -263,14 +263,21 @@ input, select, textarea {
   font-weight: 600;
 }
 
-/* ── Header Action Buttons (all must stay visible, never shrink) ── */
-.header-inner > :not(.app-nav):not(.app-logo) {
+/* ── Header Action Buttons ── */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
   flex-shrink: 0;
 }
 
-/* Mobile-only dashboard bar (hidden on desktop) */
-.dash-mobile-bar {
-  display: none;
+/* ── Dashboard month nav bar (always visible, inside dashboard section) ── */
+.dash-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
 }
 
 /* ── App Layout (side panel + main) ── */
@@ -494,13 +501,6 @@ input, select, textarea {
   .settings-layout {
     grid-template-columns: 1fr;
   }
-  /* Hide text labels on header buttons to save space */
-  #btn-add-transaction span {
-    display: none;
-  }
-  #btn-add-transaction {
-    padding: 6px 10px;
-  }
   /* Side panel overlays instead of pushing on tablets */
   .app-layout.panel-open .app-main {
     margin-left: 0;
@@ -581,27 +581,9 @@ input, select, textarea {
     color: #fff;
   }
 
-  /* ── Hide header print & month nav on mobile, show inline bar ── */
-
-  .header-month-nav {
-    display: none;
-  }
-
-  .dash-mobile-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-md);
-    margin-bottom: var(--space-lg);
-  }
-
   /* ── Add Transaction button compact ── */
   #btn-add-transaction span {
     display: none;
-  }
-
-  #btn-add-transaction {
-    padding: 6px 10px;
   }
 
   .stats-grid {

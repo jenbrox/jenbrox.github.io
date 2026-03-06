@@ -293,7 +293,6 @@ function setupNavigation() {
 
 function renderDashboardView() {
   updateMonthLabel('dash-month-label', AppState.dashboardMonth);
-  updateMonthLabel('dash-month-label-mobile', AppState.dashboardMonth);
   Dashboard.renderDashboard(AppState.dashboardMonth);
 }
 
@@ -348,14 +347,6 @@ function setupMonthNavHandlers() {
     renderDashboardView();
   });
   document.getElementById('dash-next-month')?.addEventListener('click', () => {
-    AppState.dashboardMonth = Utils.offsetMonth(AppState.dashboardMonth, 1);
-    renderDashboardView();
-  });
-  document.getElementById('dash-prev-month-mobile')?.addEventListener('click', () => {
-    AppState.dashboardMonth = Utils.offsetMonth(AppState.dashboardMonth, -1);
-    renderDashboardView();
-  });
-  document.getElementById('dash-next-month-mobile')?.addEventListener('click', () => {
     AppState.dashboardMonth = Utils.offsetMonth(AppState.dashboardMonth, 1);
     renderDashboardView();
   });
@@ -1510,7 +1501,7 @@ function showCalendarDayDetail(day, txns, catMap, settings) {
 
 function setupCalendarHandlers() {
   // Click on month labels opens calendar
-  ['dash-month-label', 'dash-month-label-mobile'].forEach(id => {
+  ['dash-month-label'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       el.style.cursor = 'pointer';
@@ -1539,7 +1530,6 @@ function setupPrintHandler() {
     setTimeout(() => window.print(), 200);
   };
   document.getElementById('btn-print-report')?.addEventListener('click', printAction);
-  document.getElementById('btn-print-report-mobile')?.addEventListener('click', printAction);
 }
 
 /* ═══════════════════════════════════════════════
