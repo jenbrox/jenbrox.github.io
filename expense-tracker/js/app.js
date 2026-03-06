@@ -89,6 +89,8 @@ function setupUserMenu() {
   const nameEl = document.getElementById('user-dropdown-name');
   const emailEl = document.getElementById('user-dropdown-email');
   const logoutBtn = document.getElementById('btn-logout');
+  const avatarUpload = document.getElementById('avatar-upload');
+  const removeAvatarBtn = document.getElementById('btn-remove-avatar');
 
   if (!btn || !dropdown) return;
 
@@ -97,15 +99,7 @@ function setupUserMenu() {
   if (user) {
     if (nameEl) nameEl.textContent = user.name || 'User';
     if (emailEl) emailEl.textContent = user.email || '';
-
-    // Show avatar if available
-    const avatarImg = document.getElementById('user-avatar');
-    const avatarFallback = document.getElementById('user-avatar-fallback');
-    if (user.avatar_url && avatarImg) {
-      avatarImg.src = user.avatar_url;
-      avatarImg.hidden = false;
-      if (avatarFallback) avatarFallback.style.display = 'none';
-    }
+    updateAvatarDisplay(user.avatar_url);
   }
 
   // Toggle dropdown
@@ -122,6 +116,114 @@ function setupUserMenu() {
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => Auth.logout());
   }
+
+  // Avatar upload
+  if (avatarUpload) {
+    avatarUpload.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // Validate size (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('Image too large. Maximum 10MB.');
+        avatarUpload.value = '';
+        return;
+      }
+
+      // Validate type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file.');
+        avatarUpload.value = '';
+        return;
+      }
+
+      // Resize and compress to keep DB reasonable
+      try {
+        const dataUrl = await resizeImage(file, 256);
+        const res = await fetch('/api/auth/avatar', {
+          method: 'PUT',
+          headers: Auth.authHeaders(),
+          body: JSON.stringify({ avatar: dataUrl }),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          alert(err.error || 'Failed to upload avatar');
+          return;
+        }
+        // Update local storage
+        const userData = Auth.getUser();
+        userData.avatar_url = dataUrl;
+        localStorage.setItem('jentrak_user', JSON.stringify(userData));
+        updateAvatarDisplay(dataUrl);
+      } catch {
+        alert('Failed to upload avatar. Please try again.');
+      }
+      avatarUpload.value = '';
+    });
+  }
+
+  // Remove avatar
+  if (removeAvatarBtn) {
+    removeAvatarBtn.addEventListener('click', async () => {
+      try {
+        await fetch('/api/auth/avatar', { method: 'DELETE', headers: Auth.authHeaders() });
+        const userData = Auth.getUser();
+        userData.avatar_url = null;
+        localStorage.setItem('jentrak_user', JSON.stringify(userData));
+        updateAvatarDisplay(null);
+      } catch {
+        alert('Failed to remove avatar.');
+      }
+    });
+  }
+}
+
+function updateAvatarDisplay(avatarUrl) {
+  // Header avatar
+  const headerImg = document.getElementById('user-avatar');
+  const headerFallback = document.getElementById('user-avatar-fallback');
+  // Dropdown avatar
+  const dropdownImg = document.getElementById('dropdown-avatar-img');
+  const dropdownFallback = document.getElementById('dropdown-avatar-fallback');
+  const removeBtn = document.getElementById('btn-remove-avatar');
+
+  if (avatarUrl) {
+    if (headerImg) { headerImg.src = avatarUrl; headerImg.hidden = false; }
+    if (headerFallback) headerFallback.style.display = 'none';
+    if (dropdownImg) { dropdownImg.src = avatarUrl; dropdownImg.hidden = false; }
+    if (dropdownFallback) dropdownFallback.style.display = 'none';
+    if (removeBtn) removeBtn.hidden = false;
+  } else {
+    if (headerImg) { headerImg.hidden = true; headerImg.src = ''; }
+    if (headerFallback) headerFallback.style.display = '';
+    if (dropdownImg) { dropdownImg.hidden = true; dropdownImg.src = ''; }
+    if (dropdownFallback) dropdownFallback.style.display = '';
+    if (removeBtn) removeBtn.hidden = true;
+  }
+}
+
+function resizeImage(file, maxSize) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        if (w > h) { if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; } }
+        else { if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; } }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 /* ═══════════════════════════════════════════════

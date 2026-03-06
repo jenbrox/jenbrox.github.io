@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Jentrak</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #6C63FF; --primary-hover: #5a52e0; --bg: #0f1117; --surface: #1a1d2e;
+      --surface-2: #232740; --text: #f1f3f9; --text-muted: #9ca3af; --border: #2d3044;
+      --green: #22c55e; --red: #ef4444; --orange: #f59e0b; --blue: #3b82f6;
+      --cyan: #06b6d4; --pink: #ec4899;
+      --font: 'Inter', system-ui, -apple-system, sans-serif; --radius: 12px;
+    }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100dvh; -webkit-font-smoothing: antialiased; }
+
+    /* LOGIN */
+    .login-overlay { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
+    .login-overlay.hidden { display: none; }
+    .login-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 2.5rem 2rem; width: 100%; max-width: 380px; text-align: center; }
+    .login-card h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: .4rem; }
+    .login-card p { color: var(--text-muted); font-size: .9rem; margin-bottom: 1.75rem; }
+    .login-card .form-group { margin-bottom: 1rem; text-align: left; }
+    .login-card label { display: block; font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .35rem; color: var(--text-muted); }
+    .login-card input { width: 100%; padding: .75rem .9rem; background: var(--surface-2); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text); font-size: .95rem; font-family: var(--font); outline: none; transition: border-color .2s; }
+    .login-card input:focus { border-color: var(--primary); }
+    .login-error { display: none; background: rgba(239,68,68,.12); color: var(--red); padding: .6rem .9rem; border-radius: 8px; font-size: .85rem; margin-bottom: 1rem; border: 1px solid rgba(239,68,68,.2); }
+    .login-error.visible { display: block; }
+    .login-card .btn { width: 100%; padding: .8rem; margin-top: .5rem; background: var(--primary); color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; font-family: var(--font); cursor: pointer; transition: background .2s; }
+    .login-card .btn:hover { background: var(--primary-hover); }
+
+    /* DASHBOARD */
+    .dashboard { display: none; }
+    .dashboard.visible { display: block; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: .75rem 1.5rem; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 10; }
+    .topbar-left { display: flex; align-items: center; gap: .75rem; }
+    .topbar-left h1 { font-size: 1.1rem; font-weight: 700; }
+    .topbar-left .badge-admin { font-size: .72rem; color: var(--text-muted); background: var(--surface-2); padding: .15rem .55rem; border-radius: 20px; }
+    .topbar-right { display: flex; align-items: center; gap: .75rem; }
+    .refresh-indicator { font-size: .75rem; color: var(--text-muted); display: flex; align-items: center; gap: .35rem; }
+    .refresh-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+    .btn-sm { background: var(--surface-2); border: 1px solid var(--border); color: var(--text-muted); padding: .35rem .7rem; border-radius: 6px; font-size: .8rem; font-family: var(--font); cursor: pointer; transition: all .2s; text-decoration: none; display: inline-flex; align-items: center; gap: .3rem; }
+    .btn-sm:hover { color: var(--text); border-color: var(--text-muted); }
+    .btn-sm.danger:hover { color: var(--red); border-color: var(--red); }
+    .content { max-width: 1280px; margin: 0 auto; padding: 1.25rem; }
+
+    /* STATS */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .75rem; margin-bottom: 1.25rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; }
+    .stat-card .label { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin-bottom: .35rem; }
+    .stat-card .value { font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; }
+    .stat-card .sub { font-size: .72rem; color: var(--text-muted); margin-top: .2rem; }
+    .green { color: var(--green); } .blue { color: var(--blue); } .orange { color: var(--orange); }
+    .purple { color: var(--primary); } .red { color: var(--red); } .cyan { color: var(--cyan); } .pink { color: var(--pink); }
+
+    /* CHARTS */
+    .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    .chart-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+    .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; }
+    .chart-header h2 { font-size: .92rem; font-weight: 600; }
+    .chart-header select { background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: .3rem .5rem; font-family: var(--font); font-size: .8rem; outline: none; cursor: pointer; }
+    .chart-canvas-wrap { position: relative; height: 240px; }
+    .chart-canvas-wrap canvas { width: 100% !important; height: 100% !important; }
+    .chart-full { grid-column: 1 / -1; }
+
+    /* TABS */
+    .tabs { display: flex; gap: 0; margin-bottom: 1rem; border-bottom: 1px solid var(--border); overflow-x: auto; }
+    .tab-btn { background: none; border: none; color: var(--text-muted); font-family: var(--font); font-size: .85rem; font-weight: 500; padding: .6rem 1rem; cursor: pointer; transition: all .2s; border-bottom: 2px solid transparent; white-space: nowrap; }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* SEARCH */
+    .search-bar { display: flex; gap: .5rem; margin-bottom: 1rem; align-items: center; }
+    .search-bar input { flex: 1; max-width: 360px; padding: .55rem .85rem; background: var(--surface-2); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text); font-size: .88rem; font-family: var(--font); outline: none; transition: border-color .2s; }
+    .search-bar input:focus { border-color: var(--primary); }
+    .search-bar input::placeholder { color: var(--text-muted); opacity: .6; }
+    .export-btns { margin-left: auto; display: flex; gap: .4rem; }
+
+    /* TABLE */
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); max-height: 500px; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+    th { text-align: left; padding: .6rem .85rem; font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); background: var(--surface-2); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1; }
+    td { padding: .55rem .85rem; border-bottom: 1px solid var(--border); color: var(--text); white-space: nowrap; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(108,99,255,.04); }
+    tr.clickable { cursor: pointer; }
+    .badge { display: inline-block; padding: .12rem .5rem; border-radius: 20px; font-size: .72rem; font-weight: 600; }
+    .badge-green { background: rgba(34,197,94,.15); color: var(--green); }
+    .badge-blue { background: rgba(59,130,246,.15); color: var(--blue); }
+    .badge-orange { background: rgba(245,158,11,.15); color: var(--orange); }
+    .badge-purple { background: rgba(108,99,255,.15); color: var(--primary); }
+    .badge-gray { background: rgba(156,163,175,.15); color: var(--text-muted); }
+    .badge-red { background: rgba(239,68,68,.15); color: var(--red); }
+    .empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); font-size: .9rem; }
+
+    /* MODAL */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 50; display: none; align-items: center; justify-content: center; padding: 1rem; }
+    .modal-backdrop.visible { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 100%; max-width: 600px; max-height: 85vh; overflow-y: auto; padding: 1.5rem; animation: fadeIn .2s ease-out; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+    .modal-header h2 { font-size: 1.1rem; font-weight: 700; }
+    .modal-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.3rem; padding: .25rem; }
+    .modal-section { margin-bottom: 1.25rem; }
+    .modal-section h3 { font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); margin-bottom: .6rem; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+    .detail-item { padding: .5rem .75rem; background: var(--surface-2); border-radius: 8px; }
+    .detail-item .dlabel { font-size: .7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .03em; }
+    .detail-item .dvalue { font-size: .92rem; font-weight: 600; margin-top: .15rem; }
+    .modal-actions { display: flex; gap: .5rem; margin-top: 1rem; }
+    .btn-danger { background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.3); color: var(--red); padding: .5rem 1rem; border-radius: 8px; font-size: .85rem; font-family: var(--font); cursor: pointer; font-weight: 500; transition: all .2s; }
+    .btn-danger:hover { background: rgba(239,68,68,.25); }
+    .btn-action { background: var(--primary); border: none; color: #fff; padding: .5rem 1rem; border-radius: 8px; font-size: .85rem; font-family: var(--font); cursor: pointer; font-weight: 500; transition: all .2s; }
+    .btn-action:hover { background: var(--primary-hover); }
+    .btn-action:disabled, .btn-danger:disabled { opacity: .5; cursor: not-allowed; }
+    .modal input[type="password"] { width: 100%; padding: .55rem .75rem; background: var(--surface-2); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text); font-size: .9rem; font-family: var(--font); outline: none; margin-top: .35rem; }
+    .modal input[type="password"]:focus { border-color: var(--primary); }
+    .modal .msg { font-size: .82rem; margin-top: .5rem; padding: .4rem .6rem; border-radius: 6px; }
+    .modal .msg.success { background: rgba(34,197,94,.12); color: var(--green); }
+    .modal .msg.error { background: rgba(239,68,68,.12); color: var(--red); }
+
+    /* LIVE FEED */
+    .live-feed { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1.25rem; max-height: 200px; overflow-y: auto; }
+    .live-feed-header { display: flex; align-items: center; gap: .5rem; margin-bottom: .75rem; }
+    .live-feed-header h2 { font-size: .92rem; font-weight: 600; }
+    .feed-item { display: flex; align-items: center; gap: .6rem; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: .82rem; }
+    .feed-item:last-child { border-bottom: none; }
+    .feed-time { color: var(--text-muted); font-size: .75rem; min-width: 55px; }
+    .feed-empty { color: var(--text-muted); font-size: .85rem; text-align: center; padding: 1rem; }
+
+    /* DB STATS */
+    .db-stats { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .db-stat { background: var(--surface-2); border-radius: 8px; padding: .6rem 1rem; font-size: .85rem; }
+    .db-stat span { color: var(--text-muted); font-size: .75rem; display: block; }
+
+    /* RESPONSIVE */
+    @media (max-width: 800px) {
+      .charts-row { grid-template-columns: 1fr; }
+      .content { padding: .75rem; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: .5rem; }
+      .stat-card { padding: .75rem; }
+      .stat-card .value { font-size: 1.2rem; }
+      td, th { padding: .4rem .5rem; font-size: .76rem; }
+      .topbar { padding: .6rem .75rem; }
+      .detail-grid { grid-template-columns: 1fr; }
+      .search-bar { flex-wrap: wrap; }
+      .export-btns { margin-left: 0; }
+    }
+
+    .loading { display: flex; align-items: center; justify-content: center; padding: 2rem; color: var(--text-muted); gap: .5rem; }
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin .6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .dashboard.visible { animation: fadeIn .3s ease-out; }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-card">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" style="margin-bottom:1rem">
+      <rect x="2" y="5" width="20" height="14" rx="3" fill="#6C63FF"/>
+      <path d="M2 10h20" stroke="white" stroke-width="1.5"/>
+      <rect x="5" y="13" width="4" height="2" rx="1" fill="white" opacity=".7"/>
+    </svg>
+    <h1>Admin Panel</h1>
+    <p>Sign in with your admin credentials</p>
+    <div class="login-error" id="login-error"></div>
+    <form id="admin-login-form" novalidate>
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" autocomplete="username" required placeholder="admin">
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" autocomplete="current-password" required placeholder="Enter password">
+      </div>
+      <button type="submit" class="btn">Sign In</button>
+    </form>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="dashboard" id="dashboard">
+  <div class="topbar">
+    <div class="topbar-left">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="3" fill="#6C63FF"/><path d="M2 10h20" stroke="white" stroke-width="1.5"/><rect x="5" y="13" width="4" height="2" rx="1" fill="white" opacity=".7"/></svg>
+      <h1>Jentrak</h1>
+      <span class="badge-admin">Admin</span>
+    </div>
+    <div class="topbar-right">
+      <span class="refresh-indicator"><span class="refresh-dot"></span> Live</span>
+      <button class="btn-sm danger" onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- Stats Row 1: Core -->
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card"><div class="label">Total Users</div><div class="value purple" id="s-users">-</div></div>
+      <div class="stat-card"><div class="label">Signups</div><div class="value green" id="s-signups">-</div></div>
+      <div class="stat-card"><div class="label">Logins</div><div class="value blue" id="s-logins">-</div></div>
+      <div class="stat-card"><div class="label">Page Views</div><div class="value orange" id="s-views">-</div></div>
+      <div class="stat-card"><div class="label">Active (7d)</div><div class="value cyan" id="s-active7">-</div></div>
+      <div class="stat-card"><div class="label">Active (30d)</div><div class="value cyan" id="s-active30">-</div></div>
+      <div class="stat-card"><div class="label">Inactive</div><div class="value red" id="s-inactive">-</div></div>
+      <div class="stat-card"><div class="label">Retention</div><div class="value pink" id="s-retention">-</div><div class="sub" id="s-retention-sub"></div></div>
+    </div>
+
+    <!-- Live Activity Feed -->
+    <div class="live-feed" id="live-feed">
+      <div class="live-feed-header">
+        <span class="refresh-dot"></span>
+        <h2>Live Activity Feed</h2>
+      </div>
+      <div id="feed-items"><div class="feed-empty">Loading...</div></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+      <div class="chart-section chart-full">
+        <div class="chart-header">
+          <h2>Activity Over Time</h2>
+          <select id="chart-range" onchange="loadChart()">
+            <option value="7">7 days</option>
+            <option value="14">14 days</option>
+            <option value="30" selected>30 days</option>
+            <option value="90">90 days</option>
+          </select>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="activity-chart"></canvas></div>
+      </div>
+      <div class="chart-section">
+        <div class="chart-header"><h2>User Growth</h2></div>
+        <div class="chart-canvas-wrap"><canvas id="growth-chart"></canvas></div>
+      </div>
+      <div class="chart-section">
+        <div class="chart-header"><h2>Countries</h2></div>
+        <div class="chart-canvas-wrap"><canvas id="country-chart"></canvas></div>
+      </div>
+      <div class="chart-section">
+        <div class="chart-header"><h2>Peak Usage Hours (UTC)</h2></div>
+        <div class="chart-canvas-wrap"><canvas id="hours-chart"></canvas></div>
+      </div>
+      <div class="chart-section">
+        <div class="chart-header"><h2>Browsers &amp; OS</h2></div>
+        <div class="chart-canvas-wrap"><canvas id="browser-chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Database Stats -->
+    <div class="chart-section" style="margin-bottom:1.25rem">
+      <div class="chart-header"><h2>System Info</h2></div>
+      <div class="db-stats" id="db-stats">
+        <div class="db-stat"><span>DB Size</span><div id="db-size">-</div></div>
+        <div class="db-stat"><span>Uptime</span><div id="db-uptime">-</div></div>
+        <div class="db-stat"><span>Users Table</span><div id="db-users">-</div></div>
+        <div class="db-stat"><span>Data Rows</span><div id="db-data">-</div></div>
+        <div class="db-stat"><span>Events</span><div id="db-events">-</div></div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs" id="main-tabs">
+      <button class="tab-btn active" data-tab="users">Users</button>
+      <button class="tab-btn" data-tab="events">Recent Events</button>
+    </div>
+
+    <div class="tab-content active" id="tab-users">
+      <div class="search-bar">
+        <input type="text" id="user-search" placeholder="Search by name, email, or country..." oninput="filterUsers()">
+        <div class="export-btns">
+          <a class="btn-sm" id="export-users-btn" href="#" onclick="exportUsers(event)">Export CSV</a>
+        </div>
+      </div>
+      <div class="loading" id="users-loading"><span class="spinner"></span> Loading users...</div>
+      <div class="table-wrap" id="users-table" style="display:none"></div>
+    </div>
+
+    <div class="tab-content" id="tab-events">
+      <div class="search-bar">
+        <input type="text" id="event-search" placeholder="Search events..." oninput="filterEvents()">
+        <div class="export-btns">
+          <a class="btn-sm" id="export-events-btn" href="#" onclick="exportEvents(event)">Export CSV</a>
+        </div>
+      </div>
+      <div class="loading" id="events-loading"><span class="spinner"></span> Loading events...</div>
+      <div class="table-wrap" id="events-table" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- USER DETAIL MODAL -->
+<div class="modal-backdrop" id="user-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">User Details</h2>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+let adminToken = sessionStorage.getItem('jentrak_admin_token');
+let charts = {};
+let allUsers = [];
+let allEventsData = [];
+let refreshTimer = null;
+let feedTimer = null;
+
+if (adminToken) showDashboard();
+
+// ── Login ──
+document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errEl = document.getElementById('login-error');
+  errEl.classList.remove('visible');
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  if (!username || !password) { errEl.textContent = 'Please fill in all fields.'; errEl.classList.add('visible'); return; }
+  try {
+    const res = await fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Login failed.'; errEl.classList.add('visible'); return; }
+    adminToken = data.token;
+    sessionStorage.setItem('jentrak_admin_token', adminToken);
+    showDashboard();
+  } catch { errEl.textContent = 'Network error.'; errEl.classList.add('visible'); }
+});
+
+function logout() {
+  sessionStorage.removeItem('jentrak_admin_token');
+  adminToken = null;
+  clearInterval(refreshTimer);
+  clearInterval(feedTimer);
+  document.getElementById('dashboard').classList.remove('visible');
+  document.getElementById('login-overlay').classList.remove('hidden');
+}
+
+function authHeaders() { return { 'Authorization': `Basic ${adminToken}`, 'Content-Type': 'application/json' }; }
+
+async function apiFetch(url, opts = {}) {
+  const res = await fetch(url, { headers: authHeaders(), ...opts });
+  if (res.status === 401) { logout(); throw new Error('Unauthorized'); }
+  return res.json();
+}
+
+// ── Tabs ──
+document.querySelectorAll('#main-tabs .tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#main-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+  });
+});
+
+// ── Dashboard ──
+async function showDashboard() {
+  document.getElementById('login-overlay').classList.add('hidden');
+  document.getElementById('dashboard').classList.add('visible');
+  loadAll();
+  // Auto-refresh every 30s
+  refreshTimer = setInterval(loadAll, 30000);
+  // Live feed every 10s
+  feedTimer = setInterval(loadFeed, 10000);
+}
+
+function loadAll() {
+  loadStats();
+  loadChart();
+  loadGrowthChart();
+  loadCountryChart();
+  loadHoursChart();
+  loadBrowserChart();
+  loadDBStats();
+  loadUsers();
+  loadEvents();
+  loadFeed();
+}
+
+// ── Stats ──
+async function loadStats() {
+  try {
+    const [s, ext] = await Promise.all([apiFetch('/api/admin/stats'), apiFetch('/api/admin/stats/extended')]);
+    document.getElementById('s-users').textContent = s.total_users.toLocaleString();
+    document.getElementById('s-signups').textContent = s.total_signups.toLocaleString();
+    document.getElementById('s-logins').textContent = s.total_logins.toLocaleString();
+    document.getElementById('s-views').textContent = s.total_page_views.toLocaleString();
+    document.getElementById('s-active7').textContent = ext.active_7d.toLocaleString();
+    document.getElementById('s-active30').textContent = ext.active_30d.toLocaleString();
+    document.getElementById('s-inactive').textContent = ext.inactive_users.toLocaleString();
+    document.getElementById('s-retention').textContent = ext.retention_rate + '%';
+    document.getElementById('s-retention-sub').textContent = 'returning users';
+  } catch {}
+}
+
+// ── DB Stats ──
+async function loadDBStats() {
+  try {
+    const ext = await apiFetch('/api/admin/stats/extended');
+    document.getElementById('db-size').textContent = formatBytes(ext.db_size);
+    document.getElementById('db-uptime').textContent = formatUptime(ext.uptime);
+    document.getElementById('db-users').textContent = ext.table_counts.users.toLocaleString();
+    document.getElementById('db-data').textContent = ext.table_counts.user_data.toLocaleString();
+    document.getElementById('db-events').textContent = ext.table_counts.analytics_events.toLocaleString();
+  } catch {}
+}
+
+// ── Activity Chart ──
+async function loadChart() {
+  const days = document.getElementById('chart-range').value;
+  try {
+    const rows = await apiFetch(`/api/admin/chart?days=${days}`);
+    const labels = []; const now = new Date();
+    for (let i = parseInt(days) - 1; i >= 0; i--) { const d = new Date(now); d.setDate(d.getDate() - i); labels.push(d.toISOString().slice(0, 10)); }
+    const datasets = { signup: { label: 'Signups', color: '#22c55e', data: {} }, login: { label: 'Logins', color: '#3b82f6', data: {} }, page_view: { label: 'Page Views', color: '#f59e0b', data: {} } };
+    for (const row of rows) { if (datasets[row.event]) datasets[row.event].data[row.day] = row.count; }
+    renderChart('activity-chart', 'line', {
+      labels: labels.map(d => shortDate(d)),
+      datasets: Object.values(datasets).map(ds => ({ label: ds.label, data: labels.map(d => ds.data[d] || 0), borderColor: ds.color, backgroundColor: ds.color + '20', borderWidth: 2, tension: .3, fill: true, pointRadius: 1, pointHoverRadius: 4 })),
+    });
+  } catch {}
+}
+
+// ── Growth Chart ──
+async function loadGrowthChart() {
+  try {
+    const rows = await apiFetch('/api/admin/growth');
+    if (!rows.length) return;
+    let cumulative = 0;
+    const labels = rows.map(r => shortDate(r.day));
+    const data = rows.map(r => { cumulative += r.count; return cumulative; });
+    renderChart('growth-chart', 'line', {
+      labels,
+      datasets: [{ label: 'Total Users', data, borderColor: '#6C63FF', backgroundColor: 'rgba(108,99,255,.15)', borderWidth: 2, tension: .3, fill: true, pointRadius: 1 }],
+    });
+  } catch {}
+}
+
+// ── Country Chart ──
+async function loadCountryChart() {
+  try {
+    const rows = await apiFetch('/api/admin/countries');
+    if (!rows.length) return;
+    const colors = ['#6C63FF', '#22c55e', '#3b82f6', '#f59e0b', '#ec4899', '#06b6d4', '#ef4444', '#a855f7'];
+    renderChart('country-chart', 'doughnut', {
+      labels: rows.map(r => r.country),
+      datasets: [{ data: rows.map(r => r.count), backgroundColor: rows.map((_, i) => colors[i % colors.length]), borderWidth: 0 }],
+    }, { cutout: '60%', plugins: { legend: { position: 'right', labels: { color: '#9ca3af', font: { size: 11 }, padding: 8, usePointStyle: true, pointStyle: 'circle' } } } });
+  } catch {}
+}
+
+// ── Peak Hours Chart ──
+async function loadHoursChart() {
+  try {
+    const rows = await apiFetch('/api/admin/peak-hours');
+    const hourMap = {}; rows.forEach(r => hourMap[r.hour] = r.count);
+    const labels = []; const data = [];
+    for (let h = 0; h < 24; h++) { const hh = String(h).padStart(2, '0'); labels.push(hh + ':00'); data.push(hourMap[hh] || 0); }
+    renderChart('hours-chart', 'bar', {
+      labels,
+      datasets: [{ label: 'Events', data, backgroundColor: 'rgba(6,182,212,.4)', borderColor: '#06b6d4', borderWidth: 1, borderRadius: 3 }],
+    }, { plugins: { legend: { display: false } } });
+  } catch {}
+}
+
+// ── Browser Chart ──
+async function loadBrowserChart() {
+  try {
+    const rows = await apiFetch('/api/admin/browsers');
+    if (!rows.length) return;
+    const browsers = {};
+    rows.forEach(r => { const b = parseBrowser(r.user_agent); browsers[b] = (browsers[b] || 0) + r.count; });
+    const sorted = Object.entries(browsers).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ec4899', '#6C63FF', '#06b6d4'];
+    renderChart('browser-chart', 'doughnut', {
+      labels: sorted.map(s => s[0]),
+      datasets: [{ data: sorted.map(s => s[1]), backgroundColor: colors, borderWidth: 0 }],
+    }, { cutout: '60%', plugins: { legend: { position: 'right', labels: { color: '#9ca3af', font: { size: 11 }, padding: 8, usePointStyle: true, pointStyle: 'circle' } } } });
+  } catch {}
+}
+
+// ── Live Feed ──
+async function loadFeed() {
+  try {
+    const events = await apiFetch('/api/admin/events?limit=15');
+    const el = document.getElementById('feed-items');
+    if (!events.length) { el.innerHTML = '<div class="feed-empty">No events yet</div>'; return; }
+    const icons = { signup: '&#x1F389;', login: '&#x1F513;', page_view: '&#x1F441;', link_click: '&#x1F517;' };
+    el.innerHTML = events.map(e => {
+      const t = formatTime(e.created_at);
+      return `<div class="feed-item"><span class="feed-time">${t}</span>${eventBadge(e.event)}<span style="color:var(--text-muted);font-size:.8rem">${esc(e.user_id ? e.user_id.slice(0, 16) + '...' : e.ip || '-')}</span></div>`;
+    }).join('');
+  } catch {}
+}
+
+// ── Users ──
+async function loadUsers() {
+  try {
+    allUsers = await apiFetch('/api/admin/users');
+    renderUsers(allUsers);
+  } catch { document.getElementById('users-loading').innerHTML = 'Failed to load'; }
+}
+
+function renderUsers(users) {
+  const wrap = document.getElementById('users-table');
+  document.getElementById('users-loading').style.display = 'none';
+  wrap.style.display = 'block';
+  if (!users.length) { wrap.innerHTML = '<div class="empty-state">No users found</div>'; return; }
+  wrap.innerHTML = `<table><thead><tr><th>Name</th><th>Email</th><th>Provider</th><th>Country</th><th>IP</th><th>Joined</th></tr></thead>
+    <tbody>${users.map(u => `<tr class="clickable" onclick="openUser('${esc(u.id)}')">
+      <td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${providerBadge(u.auth_provider)}</td>
+      <td>${esc(u.country || '-')}</td><td style="font-size:.78rem;color:var(--text-muted)">${esc(u.signup_ip || '-')}</td>
+      <td>${formatDate(u.created_at)}</td></tr>`).join('')}</tbody></table>`;
+}
+
+function filterUsers() {
+  const q = document.getElementById('user-search').value.toLowerCase();
+  if (!q) { renderUsers(allUsers); return; }
+  renderUsers(allUsers.filter(u => (u.name + u.email + (u.country || '')).toLowerCase().includes(q)));
+}
+
+// ── Events ──
+async function loadEvents() {
+  try {
+    allEventsData = await apiFetch('/api/admin/events?limit=100');
+    renderEvents(allEventsData);
+  } catch { document.getElementById('events-loading').innerHTML = 'Failed to load'; }
+}
+
+function renderEvents(events) {
+  const wrap = document.getElementById('events-table');
+  document.getElementById('events-loading').style.display = 'none';
+  wrap.style.display = 'block';
+  if (!events.length) { wrap.innerHTML = '<div class="empty-state">No events found</div>'; return; }
+  wrap.innerHTML = `<table><thead><tr><th>Event</th><th>IP</th><th>User ID</th><th>Meta</th><th>Time</th></tr></thead>
+    <tbody>${events.map(e => `<tr>
+      <td>${eventBadge(e.event)}</td><td>${esc(e.ip || '-')}</td>
+      <td style="font-size:.75rem;color:var(--text-muted)">${esc(e.user_id || '-')}</td>
+      <td style="font-size:.75rem;max-width:180px;overflow:hidden;text-overflow:ellipsis">${esc(e.meta || '-')}</td>
+      <td>${formatDate(e.created_at)}</td></tr>`).join('')}</tbody></table>`;
+}
+
+function filterEvents() {
+  const q = document.getElementById('event-search').value.toLowerCase();
+  if (!q) { renderEvents(allEventsData); return; }
+  renderEvents(allEventsData.filter(e => (e.event + (e.ip || '') + (e.user_id || '') + (e.meta || '')).toLowerCase().includes(q)));
+}
+
+// ── Exports ──
+function exportUsers(e) {
+  e.preventDefault();
+  window.open(`/api/admin/export/users?t=${adminToken}`, '_blank');
+  // Fallback: use fetch
+  fetch('/api/admin/export/users', { headers: authHeaders() })
+    .then(r => r.blob()).then(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'users_export.csv'; a.click(); });
+}
+
+function exportEvents(e) {
+  e.preventDefault();
+  fetch('/api/admin/export/events', { headers: authHeaders() })
+    .then(r => r.blob()).then(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'events_export.csv'; a.click(); });
+}
+
+// ── User Detail Modal ──
+async function openUser(id) {
+  const modal = document.getElementById('user-modal');
+  const body = document.getElementById('modal-body');
+  body.innerHTML = '<div class="loading"><span class="spinner"></span> Loading...</div>';
+  modal.classList.add('visible');
+  try {
+    const d = await apiFetch(`/api/admin/user/${id}`);
+    const u = d.user;
+    document.getElementById('modal-title').textContent = u.name;
+    body.innerHTML = `
+      <div class="modal-section">
+        <h3>Profile</h3>
+        <div class="detail-grid">
+          <div class="detail-item"><div class="dlabel">Email</div><div class="dvalue">${esc(u.email)}</div></div>
+          <div class="detail-item"><div class="dlabel">Provider</div><div class="dvalue">${providerBadge(u.auth_provider)}</div></div>
+          <div class="detail-item"><div class="dlabel">Country</div><div class="dvalue">${esc(u.country || '-')}</div></div>
+          <div class="detail-item"><div class="dlabel">IP Address</div><div class="dvalue" style="font-size:.82rem">${esc(u.signup_ip || '-')}</div></div>
+          <div class="detail-item"><div class="dlabel">Joined</div><div class="dvalue">${formatDate(u.created_at)}</div></div>
+          <div class="detail-item"><div class="dlabel">Last Login</div><div class="dvalue">${d.last_login ? formatDate(d.last_login) : 'Never'}</div></div>
+          <div class="detail-item"><div class="dlabel">Total Logins</div><div class="dvalue">${d.login_count}</div></div>
+        </div>
+      </div>
+      <div class="modal-section">
+        <h3>Data Usage</h3>
+        ${d.data_usage.length ? `<div class="detail-grid">${d.data_usage.map(du => `<div class="detail-item"><div class="dlabel">${esc(du.store_key)}</div><div class="dvalue">${du.item_count} items</div></div>`).join('')}</div>` : '<div style="color:var(--text-muted);font-size:.85rem">No data stored</div>'}
+      </div>
+      <div class="modal-section">
+        <h3>Login History</h3>
+        ${d.login_history.length ? `<div class="table-wrap" style="max-height:200px"><table><thead><tr><th>Time</th><th>IP</th><th>Browser</th></tr></thead>
+          <tbody>${d.login_history.map(lh => `<tr><td>${formatDate(lh.created_at)}</td><td style="font-size:.78rem">${esc(lh.ip || '-')}</td><td style="font-size:.78rem">${esc(parseBrowser(lh.user_agent))}</td></tr>`).join('')}</tbody></table></div>` : '<div style="color:var(--text-muted);font-size:.85rem">No login history</div>'}
+      </div>
+      <div class="modal-section">
+        <h3>Reset Password</h3>
+        <input type="password" id="new-pw" placeholder="New password (min 6 chars)">
+        <div id="pw-msg"></div>
+        <div class="modal-actions" style="margin-top:.5rem">
+          <button class="btn-action" onclick="resetPassword('${esc(u.id)}')">Reset Password</button>
+        </div>
+      </div>
+      <div class="modal-section">
+        <h3 style="color:var(--red)">Danger Zone</h3>
+        <div class="modal-actions">
+          <button class="btn-danger" onclick="deleteUser('${esc(u.id)}', '${esc(u.name)}')">Delete User</button>
+        </div>
+      </div>`;
+  } catch { body.innerHTML = '<div class="empty-state">Failed to load user details</div>'; }
+}
+
+function closeModal() { document.getElementById('user-modal').classList.remove('visible'); }
+document.getElementById('user-modal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeModal(); });
+
+async function resetPassword(userId) {
+  const pw = document.getElementById('new-pw').value;
+  const msg = document.getElementById('pw-msg');
+  if (!pw || pw.length < 6) { msg.className = 'msg error'; msg.textContent = 'Password must be at least 6 characters'; return; }
+  try {
+    const res = await fetch(`/api/admin/user/${userId}/reset-password`, { method: 'PUT', headers: authHeaders(), body: JSON.stringify({ newPassword: pw }) });
+    const data = await res.json();
+    if (!res.ok) { msg.className = 'msg error'; msg.textContent = data.error; return; }
+    msg.className = 'msg success'; msg.textContent = 'Password reset successfully';
+    document.getElementById('new-pw').value = '';
+  } catch { msg.className = 'msg error'; msg.textContent = 'Network error'; }
+}
+
+async function deleteUser(userId, name) {
+  if (!confirm(`Delete user "${name}" and all their data? This cannot be undone.`)) return;
+  try {
+    await fetch(`/api/admin/user/${userId}`, { method: 'DELETE', headers: authHeaders() });
+    closeModal();
+    loadUsers();
+    loadStats();
+  } catch { alert('Failed to delete user'); }
+}
+
+// ── Chart Helper ──
+function renderChart(canvasId, type, data, extraOpts = {}) {
+  if (charts[canvasId]) charts[canvasId].destroy();
+  const defaults = {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { intersect: false, mode: 'index' },
+    plugins: { legend: { position: 'top', labels: { color: '#9ca3af', usePointStyle: true, pointStyle: 'circle', padding: 10, font: { family: "'Inter',sans-serif", size: 11 } } }, tooltip: { backgroundColor: '#1a1d2e', titleColor: '#f1f3f9', bodyColor: '#9ca3af', borderColor: '#2d3044', borderWidth: 1, padding: 8, cornerRadius: 6 } },
+    scales: type === 'doughnut' ? undefined : { x: { grid: { color: 'rgba(45,48,68,.4)' }, ticks: { color: '#9ca3af', font: { size: 10 }, maxRotation: 0 } }, y: { beginAtZero: true, grid: { color: 'rgba(45,48,68,.4)' }, ticks: { color: '#9ca3af', font: { size: 10 }, stepSize: 1 } } },
+  };
+  const merged = deepMerge(defaults, extraOpts);
+  charts[canvasId] = new Chart(document.getElementById(canvasId), { type, data, options: merged });
+}
+
+function deepMerge(target, source) {
+  const out = { ...target };
+  for (const key of Object.keys(source)) {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key]) && target[key]) {
+      out[key] = deepMerge(target[key], source[key]);
+    } else { out[key] = source[key]; }
+  }
+  return out;
+}
+
+// ── Helpers ──
+function esc(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+function formatDate(d) {
+  if (!d) return '-';
+  const n = d.includes('T') ? d : d.replace(' ', 'T') + 'Z';
+  const dt = new Date(n);
+  if (isNaN(dt.getTime())) return d;
+  return dt.toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' }) + ', ' + dt.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatTime(d) {
+  if (!d) return '';
+  const n = d.includes('T') ? d : d.replace(' ', 'T') + 'Z';
+  const dt = new Date(n);
+  if (isNaN(dt.getTime())) return '';
+  return dt.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' });
+}
+
+function shortDate(d) { const dt = new Date(d + 'T00:00:00'); return dt.toLocaleDateString('en', { month: 'short', day: 'numeric' }); }
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1048576).toFixed(1) + ' MB';
+}
+
+function formatUptime(s) {
+  const d = Math.floor(s / 86400); const h = Math.floor((s % 86400) / 3600); const m = Math.floor((s % 3600) / 60);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function providerBadge(p) {
+  const map = { local: 'badge-gray', google: 'badge-blue', facebook: 'badge-blue', github: 'badge-purple' };
+  return `<span class="badge ${map[p] || 'badge-gray'}">${p || 'local'}</span>`;
+}
+
+function eventBadge(e) {
+  const map = { signup: 'badge-green', login: 'badge-blue', page_view: 'badge-orange', link_click: 'badge-purple' };
+  return `<span class="badge ${map[e] || 'badge-gray'}">${e}</span>`;
+}
+
+function parseBrowser(ua) {
+  if (!ua) return 'Unknown';
+  if (ua.includes('Edg/')) return 'Edge';
+  if (ua.includes('OPR/') || ua.includes('Opera')) return 'Opera';
+  if (ua.includes('Chrome/') && !ua.includes('Edg/')) return 'Chrome';
+  if (ua.includes('Safari/') && !ua.includes('Chrome')) return 'Safari';
+  if (ua.includes('Firefox/')) return 'Firefox';
+  if (ua.includes('MSIE') || ua.includes('Trident')) return 'IE';
+  if (ua.includes('curl')) return 'curl';
+  if (ua.includes('PostmanRuntime')) return 'Postman';
+  return 'Other';
+}
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jentrak-v1';
+const CACHE_NAME = 'jentrak-v3';
 const ASSETS = [
   '/',
   '/index.html',
@@ -8,6 +8,7 @@ const ASSETS = [
   '/css/components.css',
   '/css/charts.css',
   '/js/utils.js',
+  '/js/auth.js',
   '/js/store.js',
   '/js/transactions.js',
   '/js/categories.js',
@@ -38,6 +39,9 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+  // Skip caching for admin and API routes
+  if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/api/') || url.pathname.endsWith('login.html') || url.pathname.endsWith('signup.html')) return;
   e.respondWith(
     caches.match(e.request).then(cached => {
       const fetched = fetch(e.request).then(response => {

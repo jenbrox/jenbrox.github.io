@@ -6,22 +6,44 @@
   <title>Sign Up - Jentrak</title>
   <meta name="description" content="Create your free Jentrak expense tracker account.">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
       --primary: #6C63FF;
       --primary-hover: #5a52e0;
-      --bg: #f8fafc;
+      --primary-light: rgba(108, 99, 255, 0.08);
+      --bg: #f0f2f5;
       --surface: #ffffff;
-      --text: #1e293b;
-      --text-muted: #64748b;
-      --border: #e2e8f0;
+      --text: #1a1d26;
+      --text-muted: #6b7280;
+      --border: #e5e7eb;
       --error: #ef4444;
       --error-bg: #fef2f2;
-      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      --radius: 12px;
-      --shadow: 0 4px 24px rgba(0,0,0,.08);
+      --green: #22c55e;
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --shadow: 0 4px 32px rgba(0,0,0,.08);
+      --gradient-start: #6C63FF;
+      --gradient-mid: #5B4CE0;
+      --gradient-end: #3B1F8E;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1117;
+        --surface: #1a1d2e;
+        --text: #f1f3f9;
+        --text-muted: #9ca3af;
+        --border: #2d3044;
+        --error-bg: #2d1518;
+        --shadow: 0 4px 32px rgba(0,0,0,.3);
+        --primary-light: rgba(108, 99, 255, 0.12);
+      }
     }
 
     body {
@@ -30,72 +52,142 @@
       color: var(--text);
       min-height: 100dvh;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
+      align-items: stretch;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
-    .auth-container { width: 100%; max-width: 420px; }
+    /* ── LAYOUT ── */
+    .auth-wrapper { display: flex; width: 100%; min-height: 100dvh; }
+
+    /* ── BRANDED PANEL ── */
+    .brand-panel {
+      flex: 1;
+      background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-mid) 40%, var(--gradient-end) 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 3rem; position: relative; overflow: hidden;
+    }
+    .brand-panel::before {
+      content: ''; position: absolute; width: 450px; height: 450px; border-radius: 50%;
+      background: rgba(255,255,255,.06); top: -120px; right: -120px;
+    }
+    .brand-panel::after {
+      content: ''; position: absolute; width: 350px; height: 350px; border-radius: 50%;
+      background: rgba(255,255,255,.04); bottom: -100px; left: -80px;
+    }
+
+    .brand-content { position: relative; z-index: 1; text-align: center; color: #fff; max-width: 380px; }
+
+    .brand-icon {
+      width: 72px; height: 72px; background: rgba(255,255,255,.15);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border-radius: 20px; display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.75rem; border: 1px solid rgba(255,255,255,.2);
+    }
+    .brand-name { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: .75rem; }
+    .brand-tagline { font-size: 1.05rem; opacity: .85; line-height: 1.6; }
+
+    .brand-stats {
+      margin-top: 2.5rem; display: flex; gap: 1.5rem; justify-content: center;
+    }
+    .brand-stat { text-align: center; }
+    .brand-stat-value { font-size: 1.5rem; font-weight: 800; }
+    .brand-stat-label { font-size: .8rem; opacity: .7; margin-top: .15rem; }
+
+    .brand-testimonial {
+      margin-top: 2.5rem; background: rgba(255,255,255,.1); border-radius: 16px;
+      padding: 1.25rem 1.5rem; text-align: left; border: 1px solid rgba(255,255,255,.1);
+    }
+    .brand-testimonial p { font-size: .92rem; line-height: 1.6; opacity: .9; font-style: italic; }
+    .brand-testimonial .author { margin-top: .75rem; font-size: .82rem; opacity: .7; font-style: normal; }
+
+    /* ── FORM PANEL ── */
+    .form-panel {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 2rem; background: var(--bg); overflow-y: auto;
+    }
+    .auth-container { width: 100%; max-width: 440px; }
 
     .auth-card {
-      background: var(--surface);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 2.5rem 2rem;
+      background: var(--surface); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 2.5rem 2.25rem; border: 1px solid var(--border);
     }
 
-    .auth-logo {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: .6rem;
-      margin-bottom: 2rem;
+    .auth-logo-mobile {
+      display: none; align-items: center; justify-content: center;
+      gap: .5rem; margin-bottom: 1.5rem;
     }
-    .auth-logo svg { flex-shrink: 0; }
-    .auth-logo span { font-size: 1.5rem; font-weight: 700; color: var(--text); }
+    .auth-logo-mobile span { font-size: 1.35rem; font-weight: 700; color: var(--primary); }
 
-    .auth-title { text-align: center; font-size: 1.25rem; font-weight: 600; margin-bottom: .5rem; }
-    .auth-subtitle { text-align: center; color: var(--text-muted); font-size: .9rem; margin-bottom: 1.75rem; }
+    .auth-title { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: .4rem; }
+    .auth-subtitle { color: var(--text-muted); font-size: .92rem; margin-bottom: 1.75rem; line-height: 1.5; }
 
-    .form-group { margin-bottom: 1.25rem; }
-    .form-group label { display: block; font-size: .85rem; font-weight: 500; margin-bottom: .4rem; color: var(--text); }
+    /* ── FORM ── */
+    .form-group { margin-bottom: 1.1rem; }
+    .form-group label {
+      display: block; font-size: .8rem; font-weight: 600; margin-bottom: .4rem;
+      color: var(--text); text-transform: uppercase; letter-spacing: .04em;
+    }
+
+    .input-wrapper { position: relative; }
+    .input-icon {
+      position: absolute; left: .85rem; top: 50%; transform: translateY(-50%);
+      color: var(--text-muted); pointer-events: none; display: flex; align-items: center;
+    }
 
     .form-group input {
-      width: 100%; padding: .7rem .9rem;
-      border: 1.5px solid var(--border); border-radius: 8px;
-      font-size: .95rem; font-family: var(--font); color: var(--text);
-      background: var(--bg); transition: border-color .2s, box-shadow .2s; outline: none;
+      width: 100%; padding: .75rem .9rem .75rem 2.7rem;
+      border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      font-size: .93rem; font-family: var(--font); color: var(--text);
+      background: var(--bg); transition: border-color .2s, box-shadow .2s, background .2s; outline: none;
     }
-    .form-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(108,99,255,.15); }
+    .form-group input::placeholder { color: var(--text-muted); opacity: .6; }
+    .form-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(108,99,255,.12); background: var(--surface); }
 
-    .form-hint { font-size: .78rem; color: var(--text-muted); margin-top: .3rem; }
-    .email-hint { font-size: .78rem; color: var(--text-muted); margin-top: .3rem; }
+    .form-hint { font-size: .75rem; color: var(--text-muted); margin-top: .35rem; }
 
-    .form-error { display: none; background: var(--error-bg); color: var(--error); padding: .6rem .9rem; border-radius: 8px; font-size: .85rem; margin-bottom: 1rem; }
-    .form-error.visible { display: block; }
+    .form-error {
+      display: none; background: var(--error-bg); color: var(--error);
+      padding: .65rem 1rem; border-radius: var(--radius-sm); font-size: .84rem;
+      margin-bottom: 1.1rem; border: 1px solid rgba(239,68,68,.15);
+    }
+    .form-error.visible { display: flex; align-items: center; gap: .5rem; }
 
+    /* ── PASSWORD STRENGTH ── */
+    .strength-wrap { display: flex; gap: .3rem; margin-top: .5rem; }
+    .strength-seg {
+      flex: 1; height: 4px; border-radius: 2px; background: var(--border);
+      transition: background .3s;
+    }
+    .strength-label { font-size: .72rem; margin-top: .3rem; font-weight: 500; transition: color .3s; }
+
+    /* ── BUTTON ── */
     .btn-primary {
-      width: 100%; padding: .75rem 1rem; background: var(--primary); color: #fff;
-      border: none; border-radius: 8px; font-size: 1rem; font-weight: 600;
-      font-family: var(--font); cursor: pointer; transition: background .2s, transform .1s;
+      width: 100%; padding: .8rem 1rem;
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid));
+      color: #fff; border: none; border-radius: var(--radius-sm);
+      font-size: 1rem; font-weight: 600; font-family: var(--font); cursor: pointer;
+      transition: transform .15s, box-shadow .2s;
+      box-shadow: 0 4px 14px rgba(108,99,255,.35); letter-spacing: .01em;
+      margin-top: .5rem;
     }
-    .btn-primary:hover { background: var(--primary-hover); }
-    .btn-primary:active { transform: scale(.98); }
-    .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(108,99,255,.4); }
+    .btn-primary:active { transform: translateY(0) scale(.98); }
+    .btn-primary:disabled { opacity: .6; cursor: not-allowed; transform: none; box-shadow: none; }
 
     .auth-footer { text-align: center; margin-top: 1.5rem; font-size: .9rem; color: var(--text-muted); }
     .auth-footer a { color: var(--primary); text-decoration: none; font-weight: 600; }
     .auth-footer a:hover { text-decoration: underline; }
 
     .password-wrapper { position: relative; }
+    .password-wrapper input { padding-right: 2.75rem; }
     .password-toggle {
-      position: absolute; right: .6rem; top: 50%; transform: translateY(-50%);
+      position: absolute; right: .7rem; top: 50%; transform: translateY(-50%);
       background: none; border: none; cursor: pointer; color: var(--text-muted);
-      padding: .25rem; display: flex; align-items: center;
+      padding: .25rem; display: flex; align-items: center; transition: color .2s;
     }
-
-    .password-strength { height: 4px; border-radius: 2px; background: var(--border); margin-top: .5rem; overflow: hidden; }
-    .password-strength-bar { height: 100%; width: 0; border-radius: 2px; transition: width .3s, background .3s; }
+    .password-toggle:hover { color: var(--primary); }
 
     .spinner {
       display: inline-block; width: 18px; height: 18px;
@@ -105,92 +197,208 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    @media (max-width: 480px) {
-      .auth-card { padding: 2rem 1.25rem; }
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .brand-panel { display: none; }
+      .auth-logo-mobile { display: flex; }
+      .form-panel { padding: 1.5rem; }
     }
+    @media (max-width: 480px) {
+      .auth-card { padding: 1.75rem 1.25rem; box-shadow: none; border: none; background: var(--bg); }
+      .form-panel { padding: 1rem; }
+    }
+
+    /* ── ANIMATION ── */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    .auth-card { animation: fadeUp .5s ease-out; }
+    .brand-content { animation: fadeUp .6s ease-out .1s both; }
   </style>
 </head>
 <body>
 
-<div class="auth-container">
-  <div class="auth-card">
-    <div class="auth-logo">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-        <rect x="2" y="5" width="20" height="14" rx="3" fill="#6C63FF"/>
-        <path d="M2 10h20" stroke="white" stroke-width="1.5"/>
-        <rect x="5" y="13" width="4" height="2" rx="1" fill="white" opacity=".7"/>
-      </svg>
-      <span>Jentrak</span>
-    </div>
-
-    <h1 class="auth-title">Create your account</h1>
-    <p class="auth-subtitle">Start tracking your finances for free</p>
-
-    <div id="form-error" class="form-error"></div>
-
-    <form id="signup-form" novalidate>
-      <div class="form-group">
-        <label for="name">Full name</label>
-        <input type="text" id="name" name="name" autocomplete="name" required placeholder="John Doe">
+<div class="auth-wrapper">
+  <!-- Branded side panel -->
+  <div class="brand-panel">
+    <div class="brand-content">
+      <div class="brand-icon">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+          <rect x="2" y="5" width="20" height="14" rx="3" fill="white"/>
+          <path d="M2 10h20" stroke="#6C63FF" stroke-width="1.5"/>
+          <rect x="5" y="13" width="4" height="2" rx="1" fill="#6C63FF" opacity=".5"/>
+        </svg>
       </div>
+      <h2 class="brand-name">Jentrak</h2>
+      <p class="brand-tagline">Join thousands managing their money smarter with Jentrak.</p>
 
-      <div class="form-group">
-        <label for="email">Email address</label>
-        <input type="email" id="email" name="email" autocomplete="email" required placeholder="you@example.com">
-        <p class="email-hint">We'll use this email for notifications and account recovery.</p>
-      </div>
-
-      <div class="form-group">
-        <label for="password">Password</label>
-        <div class="password-wrapper">
-          <input type="password" id="password" name="password" autocomplete="new-password" required placeholder="Create a password" oninput="updateStrength()">
-          <button type="button" class="password-toggle" aria-label="Toggle password visibility" onclick="togglePassword()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
+      <div class="brand-stats">
+        <div class="brand-stat">
+          <div class="brand-stat-value">Smart</div>
+          <div class="brand-stat-label">Insights</div>
         </div>
-        <div class="password-strength"><div class="password-strength-bar" id="strength-bar"></div></div>
-        <p class="form-hint">At least 6 characters</p>
+        <div class="brand-stat">
+          <div class="brand-stat-value">30s</div>
+          <div class="brand-stat-label">To sign up</div>
+        </div>
+        <div class="brand-stat">
+          <div class="brand-stat-value">24/7</div>
+          <div class="brand-stat-label">Access</div>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label for="confirm-password">Confirm password</label>
-        <input type="password" id="confirm-password" name="confirm-password" autocomplete="new-password" required placeholder="Re-enter your password">
+      <div class="brand-testimonial" id="quote-card">
+        <p id="quote-text"></p>
+        <div class="author" id="quote-author"></div>
       </div>
+    </div>
+  </div>
 
-      <button type="submit" class="btn-primary" id="submit-btn">Create Account</button>
-    </form>
+  <!-- Form panel -->
+  <div class="form-panel">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="auth-logo-mobile">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <rect x="2" y="5" width="20" height="14" rx="3" fill="#6C63FF"/>
+            <path d="M2 10h20" stroke="white" stroke-width="1.5"/>
+            <rect x="5" y="13" width="4" height="2" rx="1" fill="white" opacity=".7"/>
+          </svg>
+          <span>Jentrak</span>
+        </div>
 
-    <p class="auth-footer">
-      Already have an account? <a href="./login.html">Sign in</a>
-    </p>
+        <h1 class="auth-title">Create your account</h1>
+        <p class="auth-subtitle">Start tracking your finances for free</p>
+
+        <div id="form-error" class="form-error">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+          <span id="form-error-text"></span>
+        </div>
+
+        <form id="signup-form" novalidate>
+          <div class="form-group">
+            <label for="name">Full name</label>
+            <div class="input-wrapper">
+              <span class="input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </span>
+              <input type="text" id="name" name="name" autocomplete="name" required placeholder="John Doe">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email address</label>
+            <div class="input-wrapper">
+              <span class="input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              </span>
+              <input type="email" id="email" name="email" autocomplete="email" required placeholder="you@example.com">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <div class="input-wrapper password-wrapper">
+              <span class="input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </span>
+              <input type="password" id="password" name="password" autocomplete="new-password" required placeholder="Create a password" oninput="updateStrength()">
+              <button type="button" class="password-toggle" aria-label="Toggle password visibility" onclick="togglePassword('password')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <div class="strength-wrap">
+              <div class="strength-seg" id="seg-1"></div>
+              <div class="strength-seg" id="seg-2"></div>
+              <div class="strength-seg" id="seg-3"></div>
+              <div class="strength-seg" id="seg-4"></div>
+            </div>
+            <p class="strength-label" id="strength-label" style="color:var(--text-muted)">At least 6 characters</p>
+          </div>
+
+          <div class="form-group">
+            <label for="confirm-password">Confirm password</label>
+            <div class="input-wrapper password-wrapper">
+              <span class="input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+              </span>
+              <input type="password" id="confirm-password" name="confirm-password" autocomplete="new-password" required placeholder="Re-enter your password">
+              <button type="button" class="password-toggle" aria-label="Toggle confirm password" onclick="togglePassword('confirm-password')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary" id="submit-btn">Create Account</button>
+        </form>
+
+        <p class="auth-footer">
+          Already have an account? <a href="./login.html">Sign in</a>
+        </p>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
   if (localStorage.getItem('jentrak_token')) window.location.href = './index.html';
 
-  function togglePassword() {
-    const input = document.getElementById('password');
+  // Random financial quotes
+  const quotes = [
+    { text: "Do not save what is left after spending, but spend what is left after saving.", author: "Warren Buffett" },
+    { text: "A budget is telling your money where to go instead of wondering where it went.", author: "Dave Ramsey" },
+    { text: "The habit of saving is itself an education; it fosters every virtue, teaches self-denial, cultivates the sense of order.", author: "T.T. Munger" },
+    { text: "It's not your salary that makes you rich, it's your spending habits.", author: "Charles A. Jaffe" },
+    { text: "Beware of little expenses. A small leak will sink a great ship.", author: "Benjamin Franklin" },
+    { text: "Money is a terrible master but an excellent servant.", author: "P.T. Barnum" },
+    { text: "The art is not in making money, but in keeping it.", author: "Proverb" },
+    { text: "Financial peace isn't the acquisition of stuff. It's learning to live on less than you make.", author: "Dave Ramsey" },
+    { text: "Never spend your money before you have earned it.", author: "Thomas Jefferson" },
+    { text: "Wealth consists not in having great possessions, but in having few wants.", author: "Epictetus" },
+    { text: "The quickest way to double your money is to fold it in half and put it in your back pocket.", author: "Will Rogers" },
+    { text: "An investment in knowledge pays the best interest.", author: "Benjamin Franklin" },
+    { text: "Too many people spend money they haven't earned to buy things they don't want to impress people they don't like.", author: "Will Rogers" },
+    { text: "Rich people stay rich by living like they're broke. Broke people stay broke by living like they're rich.", author: "Anonymous" },
+    { text: "Every time you borrow money, you're robbing your future self.", author: "Nathan W. Morris" },
+  ];
+  const q = quotes[Math.floor(Math.random() * quotes.length)];
+  document.getElementById('quote-text').textContent = '"' + q.text + '"';
+  document.getElementById('quote-author').textContent = '-- ' + q.author;
+
+  // Track page view
+  fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'page_view', meta: { page: 'signup' } }) }).catch(() => {});
+
+  function togglePassword(id) {
+    const input = document.getElementById(id);
     input.type = input.type === 'password' ? 'text' : 'password';
   }
 
   function updateStrength() {
     const pw = document.getElementById('password').value;
-    const bar = document.getElementById('strength-bar');
     let score = 0;
     if (pw.length >= 6) score++;
     if (pw.length >= 10) score++;
     if (/[A-Z]/.test(pw)) score++;
-    if (/[0-9]/.test(pw)) score++;
-    if (/[^A-Za-z0-9]/.test(pw)) score++;
-    const pct = (score / 5) * 100;
-    bar.style.width = pct + '%';
-    bar.style.background = score <= 1 ? '#ef4444' : score <= 2 ? '#f59e0b' : score <= 3 ? '#eab308' : '#22c55e';
+    if (/[0-9]/.test(pw) && /[^A-Za-z0-9]/.test(pw)) score++;
+
+    const colors = ['', '#ef4444', '#f59e0b', '#eab308', '#22c55e'];
+    const labels = ['At least 6 characters', 'Weak', 'Fair', 'Good', 'Strong'];
+    const labelColors = ['var(--text-muted)', '#ef4444', '#f59e0b', '#eab308', '#22c55e'];
+
+    for (let i = 1; i <= 4; i++) {
+      document.getElementById('seg-' + i).style.background = i <= score ? colors[score] : 'var(--border)';
+    }
+    document.getElementById('strength-label').textContent = labels[score];
+    document.getElementById('strength-label').style.color = labelColors[score];
+  }
+
+  function handleAuthSuccess(data) {
+    localStorage.setItem('jentrak_token', data.token);
+    localStorage.setItem('jentrak_user', JSON.stringify(data.user));
+    window.location.href = './index.html';
   }
 
   function showError(msg) {
     const el = document.getElementById('form-error');
-    el.textContent = msg;
+    document.getElementById('form-error-text').textContent = msg;
     el.classList.add('visible');
   }
 
@@ -228,7 +436,6 @@
       handleAuthSuccess(data);
     } catch { showError('Network error. Please check your connection.'); btn.disabled = false; btn.textContent = 'Create Account'; }
   });
-
 </script>
 
 </body>
