@@ -185,6 +185,8 @@
   margin-bottom: var(--space-xs);
   position: relative;
   z-index: 1;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .stat-value--positive { color: #fff; }
@@ -598,6 +600,10 @@
 }
 
 .col-amount {
+  white-space: nowrap;
+}
+
+.col-amount {
   text-align: right;
   white-space: nowrap;
 }
@@ -752,6 +758,7 @@
   padding: var(--space-md);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
+  flex-wrap: wrap;
 }
 
 .data-action-item--danger {
@@ -974,7 +981,7 @@
 /* ── Insight Cards ── */
 .insights-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
   gap: var(--space-md);
   margin-bottom: var(--space-lg);
 }
@@ -1035,27 +1042,133 @@
 }
 
 /* ── Responsive tweaks ── */
+
+/* Tablet and below */
+@media (max-width: 768px) {
+  .stat-card {
+    padding: var(--space-md) var(--space-lg);
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .chart-card {
+    padding: var(--space-lg);
+  }
+
+  .chart-card__header {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+  }
+
+  /* Data action items stack on smaller screens */
+  .data-action-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+
+  .data-action-buttons {
+    align-self: stretch;
+    justify-content: flex-end;
+  }
+
+  /* Recurring card meta wraps */
+  .recurring-card__meta {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .goal-card__meta {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .debt-card__meta {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+}
+
 @media (max-width: 640px) {
   .form-row {
     grid-template-columns: 1fr;
   }
+
   .modal-inner {
     padding: var(--space-lg);
   }
+
+  /* Hide non-essential table columns */
   .table th.col-desc,
   .table td.col-desc,
   .table th.col-tags,
   .table td.col-tags {
     display: none;
   }
+
+  .table th,
+  .table td {
+    padding: 10px 12px;
+    font-size: 0.8125rem;
+  }
+
+  .col-amount {
+    min-width: 80px;
+  }
+
+  /* Toasts above bottom nav */
   .toast-container {
     right: var(--space-md);
-    bottom: var(--space-md);
+    bottom: 80px;
     left: var(--space-md);
   }
+
   .toast {
     min-width: 0;
     max-width: 100%;
+  }
+
+  /* Summary cards stack */
+  .summary-cards {
+    flex-direction: column;
+  }
+
+  /* Goals grid single column */
+  .goals-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Debts grid single column */
+  .debts-list {
+    grid-template-columns: 1fr;
+  }
+
+  /* Wishlist grid single column */
+  .wishlist-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Accounts grid single column */
+  .accounts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Insight cards */
+  .insights-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: var(--space-sm);
+  }
+
+  .insight-card {
+    padding: var(--space-md);
+    gap: var(--space-sm);
+  }
+
+  .insight-card__value {
+    font-size: 1rem;
   }
 }
 
@@ -1171,7 +1284,7 @@
 
 .debts-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
   gap: var(--space-lg);
 }
 
@@ -1201,6 +1314,8 @@
 .summary-card__value {
   font-size: 1.5rem;
   font-weight: 800;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 /* ── Wishlist ── */
@@ -1212,7 +1327,7 @@
 
 .wishlist-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
   gap: var(--space-lg);
 }
 
@@ -1297,7 +1412,7 @@
 
 .accounts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
   gap: var(--space-lg);
 }
 
@@ -1334,6 +1449,8 @@
   font-size: 1.5rem;
   font-weight: 800;
   margin-bottom: var(--space-xs);
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .account-card__type {
@@ -1382,7 +1499,7 @@
 /* ── Keyboard Shortcuts ── */
 .shortcuts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
   gap: var(--space-md);
 }
 
@@ -1449,6 +1566,140 @@ textarea.input {
   }
   .shortcuts-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ── Full-screen modals on small phones ── */
+@media (max-width: 480px) {
+  .modal {
+    max-width: 100%;
+    width: 100%;
+    max-height: 100vh;
+    max-height: 100dvh;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .modal--sm {
+    max-width: 100%;
+  }
+
+  .modal-inner {
+    padding: var(--space-lg);
+  }
+
+  /* Compact stat cards */
+  .stat-card {
+    padding: var(--space-md);
+    border-radius: var(--radius-lg);
+  }
+
+  .stat-label {
+    font-size: 0.6875rem;
+    margin-bottom: var(--space-xs);
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .stat-sub {
+    font-size: 0.75rem;
+  }
+
+  .stat-card::before {
+    width: 80px;
+    height: 80px;
+  }
+
+  .stat-card::after {
+    width: 50px;
+    height: 50px;
+  }
+
+  /* Compact form */
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .form-group {
+    margin-bottom: var(--space-md);
+  }
+
+  /* Compact cards */
+  .settings-card {
+    padding: var(--space-lg);
+  }
+
+  .settings-card__title {
+    margin-bottom: var(--space-lg);
+    font-size: 0.9375rem;
+  }
+
+  .category-card {
+    padding: var(--space-md);
+  }
+
+  .goal-card {
+    padding: var(--space-md);
+  }
+
+  .goal-card__saved {
+    font-size: 1.25rem;
+  }
+
+  .debt-card {
+    padding: var(--space-md);
+  }
+
+  .wish-card {
+    padding: var(--space-md);
+  }
+
+  .recurring-card {
+    padding: var(--space-md);
+  }
+
+  .account-card {
+    padding: var(--space-md);
+  }
+
+  .account-card__balance {
+    font-size: 1.25rem;
+  }
+
+  /* Net worth cards 3-col compact */
+  .net-worth-cards {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-xs);
+  }
+
+  .nw-card {
+    padding: var(--space-sm);
+  }
+
+  .nw-card__label {
+    font-size: 0.625rem;
+  }
+
+  .nw-card__value {
+    font-size: 1rem;
+  }
+
+  /* Debt summary cards compact */
+  .debt-summary-card {
+    padding: var(--space-md);
+  }
+
+  .debt-summary-card__value {
+    font-size: 1.125rem;
+  }
+
+  /* Shortcuts hidden on very small screens (keyboard shortcuts are not useful on mobile) */
+  .shortcuts-grid {
+    display: none;
   }
 }
 

@@ -21,12 +21,19 @@
   }
 }
 
+/* Tablet: slightly smaller charts */
+@media (max-width: 768px) {
+  .chart-wrapper {
+    height: 240px;
+  }
+}
+
 /* On small screens, reduce heights so charts don't dominate */
 @media (max-width: 480px) {
   .chart-wrapper {
-    height: 220px;
+    height: 200px;
   }
   .chart-wrapper--tall {
-    height: 200px;
+    height: 180px;
   }
 }
