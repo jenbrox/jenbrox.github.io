@@ -1,384 +1,261 @@
-# Jentrak — Progressive Web App Expense Tracker
+# Jentrak -- Expense Tracker PWA
 
-A full-featured expense tracker PWA with user authentication, cloud sync, real-time analytics, and offline support.
+A full-stack Progressive Web App for personal finance management with authentication, cloud sync, interactive charts, and offline support.
 
-**Live**: https://www.jenniferbroxson.com/expense-tracker/
+Live: https://www.jenniferbroxson.com/expense-tracker/
+
 
 ---
 
 ## Features
 
-### Core Expense Tracking
-- Dashboard: Monthly summary (income, expenses, net, remaining budget)
-- Transactions: Add/edit/delete income & expenses with tags
-- Categories: Custom categories with optional monthly budgets and progress bars
-- Recurring: Auto-generate monthly bills, subscriptions, salary
-- Analytics: Interactive charts (spending by category, budget progress, 6-month trends)
+Transaction management
+- Add, edit, and delete income and expense records
+- Tag transactions with custom labels
+- Filter by type, category, or search query
+- Duplicate detection before saving
 
-### Advanced Features
-- Multi-Account: Track checking, savings, credit, cash, investments
-- Debts: Track loans you've given and owe (with partial settlements)
-- Goals: Set savings goals and track progress
-- Wishlist: Shopping list with priorities, prices, and URLs
-- Insights: AI-powered spending insights and budget warnings
+Budgeting and analytics
+- Per-category monthly budgets with progress bars
+- Dashboard with income, expenses, net balance, and remaining budget
+- Category spending doughnut chart
+- Budget vs actual bar chart
+- 6-month income/expense trend line
+- Year-over-year comparison (appears when 2+ years of data exist)
+- Daily spending heatmap
+- 3-month cash-flow forecast based on recurring templates and historical averages
+- Spending insights (largest expense, top category, average daily spend, month-over-month change)
 
-### Technical
-- Authentication: Email/password + OAuth (Google, Facebook, GitHub)
-- Cloud Sync: All data backed up and synced across devices
-- Progressive Web App: Installable app, works offline
-- Analytics: Admin dashboard with user stats and insights
-- Dark Mode: Automatic + manual toggle
-- Responsive: Mobile-first design, works on any screen size
+Savings and planning
+- Savings goals with target amounts, deadlines, and progress tracking
+- Debt tracker for money owed to you and money you owe, with partial settlement
+- Shopping wishlist with priority levels, prices, and product links
+- Recurring transaction engine (daily, weekly, bi-weekly, monthly, yearly)
+
+Accounts
+- Multiple financial accounts (checking, savings, credit, cash, investment)
+- Transfers between accounts
+- Net worth calculation (assets minus credit liabilities)
+
+Data management
+- Export to JSON, CSV, or Excel
+- Import from previous export
+- Full data reset
+
+Authentication
+- Email and password registration (bcryptjs hashing)
+- Google, Facebook, and GitHub OAuth
+- JWT tokens with 30-day expiry
+- Per-user data isolation on the server
+
+Progressive Web App
+- Service worker with cache-first strategy
+- Installable on mobile and desktop
+- Offline access to cached data
+- Automatic sync when connectivity returns
+
+Other
+- Dark mode (automatic detection and manual toggle)
+- Responsive design for mobile, tablet, and desktop
+- Admin analytics dashboard
+
 
 ---
 
 ## Architecture
 
-### Frontend Stack
-- Framework: Vanilla JavaScript (no dependencies except Chart.js)
-- Storage: Three-tier (in-memory → IndexedDB → server)
-- PWA: Service Worker for offline-first caching
-- Charts: Chart.js for data visualization
-- Styling: CSS with custom properties and dark mode support
+### Frontend
 
-### Backend Stack
-- Runtime: Node.js
-- Framework: Express.js
-- Database: SQLite with WAL mode
-- Auth: JWT + bcryptjs + OAuth2
-- Security: Helmet.js, CORS, password hashing
+All client code is vanilla JavaScript organised into 14 modules using the revealing module pattern. There are no build tools or framework dependencies beyond Chart.js (loaded from CDN).
 
-### Three-Tier Data Persistence
-1. **In-Memory Cache** (instant, no persistence)
-2. **IndexedDB** (fast, persistent, offline-capable)
-3. **Server/SQLite** (reliable, synced across devices)
+Modules are loaded via script tags in dependency order. Each exposes a single global object (e.g. Utils, Store, Transactions).
+
+Data persistence uses a three-tier architecture:
+
+1. In-memory cache -- immediate reads and writes with zero latency.
+2. IndexedDB -- persistent local storage that survives page reloads and works offline.
+3. Server API -- SQLite-backed cloud storage for cross-device sync and backup.
+
+Writes flow through all three layers. On load, data is read from localStorage first (synchronous), upgraded to IndexedDB, then overwritten by server data if the user is authenticated.
+
+### Backend
+
+Node.js with Express.js, SQLite via better-sqlite3 (WAL mode for concurrent reads), JWT authentication, and Helmet.js security headers.
+
+Three database tables:
+
+- users -- account info, password hash, OAuth provider details
+- user_data -- per-user JSON stores (transactions, categories, settings, recurring, goals, debts, wishlist, accounts)
+- analytics_events -- page views, logins, signups for the admin dashboard
+
 
 ---
 
 ## Getting Started
 
-### Option 1: Use the Hosted Version
-Simply visit https://www.jenniferbroxson.com/expense-tracker/ and create an account!
+### Hosted version
 
-### Option 2: Run Locally
+Visit https://www.jenniferbroxson.com/expense-tracker/ and create an account.
 
-**Prerequisites:**
-- Node.js 14+ and npm
-- Git
+### Local development
 
-**Setup Backend:**
+Prerequisites: Node.js 14+, npm.
+
 ```bash
 cd expense-tracker/server
 npm install
-```
-
-**Configure Environment** (create `.env`):
-```env
-JWT_SECRET=your_secret_key_here
-GOOGLE_CLIENT_ID=your_google_client_id
-FACEBOOK_APP_ID=your_facebook_app_id
-GITHUB_CLIENT_ID=your_github_client_id
-ADMIN_PASSWORD=admin_password_here
-```
-
-**Start Server:**
-```bash
 npm start
 ```
 
-Server runs on `http://localhost:5175`
+The server starts on http://localhost:5175 and serves both the API and the frontend.
 
-**Access Frontend:**
-- Open `http://localhost:5175` in your browser
-- Or serve the expense-tracker folder separately:
-  ```bash
-  python -m http.server 8000  # In the expense-tracker directory
-  # Visit http://localhost:8000
-  ```
+Create a .env file in the server directory with at minimum:
+
+```
+JWT_SECRET=replace_with_a_strong_random_string
+```
+
+Optional variables for social login:
+
+```
+GOOGLE_CLIENT_ID=
+FACEBOOK_APP_ID=
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+ADMIN_PASSWORD=replace_with_a_strong_password
+```
+
+Social login buttons only appear when the corresponding credentials are set.
+
 
 ---
 
 ## Documentation
 
-### Quick Links
-- **[Frontend Modules Guide](js/README.md)** - Architecture, data flow, module docs
-- **[Backend API Reference](server/README.md)** - All endpoints, database schema, auth flow
-- **[Parent README](../README.md)** - Overall project overview
+- server/README.md -- complete API reference with request/response examples, database schema, OAuth setup, and deployment guides
+- js/README.md -- module architecture, dependency graph, data-flow diagrams, and guide to adding new features
+- ../README.md -- overall repository overview
 
-### Key Files
-| File | Purpose |
-|------|---------|
-| `index.html` | Main SPA shell with all UI sections |
-| `login.html` | Login page |
-| `signup.html` | Registration page |
-| `admin.html` | Admin analytics dashboard |
-| `manifest.json` | PWA configuration |
-| `sw.js` | Service Worker (offline support) |
-| `js/app.js` | App initialization and routing |
-| `js/store.js` | Three-tier data persistence |
-| `server/server.js` | Express backend |
 
 ---
 
 ## Authentication
 
-### Supported Methods
-1. **Email/Password**: Traditional registration and login
-2. **Google OAuth**: Single sign-on via Google
-3. **Facebook OAuth**: Single sign-on via Facebook
-4. **GitHub OAuth**: Single sign-on via GitHub
+### Email and password
 
-### How It Works
-1. User logs in → server validates and returns JWT token
-2. JWT stored in `localStorage` and included in all API requests
-3. Server validates token on each request
-4. Token expires after 30 days (user must re-login)
-5. All user data is isolated per user in database
+1. User submits email, name, and password to POST /api/auth/signup.
+2. Server hashes the password with bcryptjs (10 rounds) and stores the user.
+3. Server returns a JWT token and user profile.
+4. Client stores the token in localStorage and includes it as a Bearer header on all API requests.
+5. Tokens expire after 30 days.
 
-### Social OAuth Setup
-For social login to work locally or in production:
+### OAuth
 
-1. **Google**: Create OAuth2 credentials at [Google Cloud Console](https://console.cloud.google.com)
-   - Authorized redirect URIs: `http://localhost:5175/`, `https://www.jenniferbroxson.com/`
-   - Set `GOOGLE_CLIENT_ID` in `.env`
+Google, Facebook, and GitHub OAuth flows are supported. Each follows the same pattern:
 
-2. **Facebook**: Create app at [Facebook Developers](https://developers.facebook.com)
-   - Valid OAuth redirect URIs: `http://localhost:5175/`, `https://www.jenniferbroxson.com/`
-   - Set `FACEBOOK_APP_ID` in `.env`
+1. Client obtains a token or authorisation code from the provider.
+2. Client sends it to the corresponding server endpoint (e.g. POST /api/auth/google).
+3. Server verifies the token with the provider, creates or finds the user, and returns a JWT.
 
-3. **GitHub**: Create OAuth app at [GitHub Settings](https://github.com/settings/developers)
-   - Authorization callback URL: `http://localhost:5175/`, `https://www.jenniferbroxson.com/`
-   - Set `GITHUB_CLIENT_ID` in `.env`
+OAuth provider setup requires creating credentials in each provider's developer console and adding the client IDs to .env. See server/README.md for detailed instructions.
 
-Note: Social login buttons only appear if corresponding env vars are set
+### Admin dashboard
+
+Available at /admin.html. Uses HTTP Basic Auth with username "admin" and the ADMIN_PASSWORD from .env.
+
+Provides user counts, signup/login activity, geographic distribution, browser stats, peak usage hours, and the ability to manage individual user accounts.
+
 
 ---
 
-## Data Management
+## Offline Behaviour
 
-### What Gets Stored
-- Transactions (income & expenses)
-- Categories and budgets
-- Recurring transaction templates
-- Savings goals
-- Debts and settlements
-- Wishlist items
-- Accounts and balances
-- User settings
+The service worker caches all static assets (HTML, CSS, JS) during installation. On subsequent visits:
 
-### Export/Import
-- **Export**: Download data as JSON or Excel (xlsx)
-- **Import**: Restore from previous export
-- **Reset**: Delete all data (careful!)
+- Cached assets are served immediately while a network fetch updates the cache in the background.
+- API routes, login, signup, and admin pages are never cached to ensure fresh authentication state.
+- Changes made offline are stored locally and synced to the server when connectivity returns.
 
----
+Chart.js is loaded from a CDN, so charts require an internet connection on first load. Once cached by the service worker, they work offline.
 
-## Analytics & Admin Dashboard
-
-The admin dashboard provides insights:
-- **Total Users**: Signup count and growth
-- **Activity**: Login frequency, page views
-- **Usage**: Peak hours, top browsers, geographic distribution
-- **Engagement**: 7-day and 30-day active user rates
-- **Data Health**: Database size, user data storage usage
-- **User Management**: View users, reset passwords, delete users
-
-**Access**: `https://www.jenniferbroxson.com/expense-tracker/admin.html`
-**Default Credentials**: `admin` / `Jentrak123@` (change in `.env`)
-
----
-
-## Offline Support
-
-### Service Worker Strategy
-- **Cache-First**: Static assets (JS, CSS, HTML) served from cache with network fallback
-- **Network-First**: API requests always fetch fresh from server
-- **Skip Caching**: Login/signup pages and API routes never cached
-
-### Offline Capabilities
-Works Offline:
-- View existing data
-- Create/edit transactions (syncs when online)
-- Navigate between sections
-- Dark mode toggle
-
-Needs Internet:
-- Login/signup
-- Real-time data sync
-- OAuth providers
-- Charts (Chart.js from CDN)
-
-### Service Worker Caching
-The SW caches all app shell files during installation. When offline:
-1. User views cached pages with local data
-2. Changes made offline are stored locally
-3. When connection restored, changes sync to server
-4. Service Worker skips cache for API and auth routes
-
----
-
-## Customization
-
-### Theming
-Edit CSS custom properties in `expense-tracker/css/main.css`:
-```css
-:root {
-  --primary-color: #6C63FF;  /* Change app primary color */
-  --danger-color: #e74c3c;
-  --success-color: #27ae60;
-  /* ... more colors ... */
-}
-```
-
-### Preset Colors
-Categories come with 16 default colors. Edit in `js/store.js`:
-```javascript
-function seedDefaultData() {
-  // Modify color array here
-  const colors = ['#FF5733', '#33FF57', ...];
-}
-```
-
----
-
-## Installing as App
-
-### On Mobile (iOS/Android)
-1. Open browser → visit app URL
-2. Tap **Share** → **Add to Home Screen**
-3. App appears as installed app with icon
-
-### On Desktop (Windows/Mac)
-1. Click **Install** button in browser address bar (if visible)
-2. App opens in windowed mode
-3. Accessible from Start Menu / Applications
-
----
-
-## Testing
-
-### Manual Testing Checklist
-- [ ] Create account with email
-- [ ] Login with password
-- [ ] Try OAuth (Google/Facebook/GitHub)
-- [ ] Add transaction and verify in dashboard
-- [ ] Create custom category with budget
-- [ ] Set up recurring transaction
-- [ ] Create savings goal
-- [ ] Export data to JSON
-- [ ] Go offline and verify app still works
-- [ ] Try dark mode toggle
-- [ ] Test responsive design on mobile
-
-### Admin Testing
-- [ ] Login to admin dashboard
-- [ ] View user stats
-- [ ] Check database size
-- [ ] View recent events
-- [ ] Export user list to CSV
 
 ---
 
 ## Deployment
 
 ### Frontend (GitHub Pages)
-Already configured in this repo:
-- Automatic deployment on push to main
-- CNAME configured for `www.jenniferbroxson.com`
+
+Already configured. Pushes to the main branch trigger automatic deployment. The CNAME file maps to www.jenniferbroxson.com.
 
 ### Backend
-Deploy Node.js server to your choice of:
-- **Heroku** (simple, has free tier)
-- **DigitalOcean** (affordable VPS)
-- **AWS EC2** (scalable)
-- **Railway** (modern platform)
-- **Render** (easy deployment)
 
-**Requirements:**
+Deploy the server directory to any Node.js host. Options include Railway, Render, DigitalOcean, Heroku, or AWS.
+
+Requirements:
 - Node.js 14+
-- Set environment variables on hosting platform
-- Configure HTTPS (required for OAuth)
-- For SQLite: Use WAL mode (already configured) for better concurrency
+- Environment variables set on the host (JWT_SECRET at minimum)
+- HTTPS configured (required for OAuth redirect URIs)
+- SQLite WAL mode is already enabled in server.js
 
-**After Deployment:**
-- Update API endpoint in frontend if using custom server domain
-- Ensure CORS is configured correctly
-- Test OAuth redirects with production URLs
+After deployment, ensure CORS is configured for your production domain and that OAuth provider redirect URIs match the deployed URL.
 
----
-
-## Security Considerations
-
-### Production Checklist
-- [ ] Change admin password in `.env`
-- [ ] Generate strong `JWT_SECRET`
-- [ ] Use HTTPS everywhere (enforced by OAuth)
-- [ ] Keep dependencies updated (`npm audit fix`)
-- [ ] Configure CORS for your domain only
-- [ ] Set secure database backups
-- [ ] Monitor admin dashboard for suspicious activity
-- [ ] Use environment variables for secrets (never commit `.env`)
-- [ ] Enable CSRF protection if adding forms
 
 ---
 
 ## Browser Support
 
-| Browser | Min Version | PWA Support |
-|---------|-------------|-------------|
-| Chrome | 90+ | Full |
-| Firefox | 88+ | Full |
-| Safari | 14+ | Limited |
-| Edge | 90+ | Full |
+| Browser     | Minimum Version | PWA Support |
+|-------------|-----------------|-------------|
+| Chrome      | 90+             | Full        |
+| Edge        | 90+             | Full        |
+| Firefox     | 88+             | Full        |
+| Safari      | 14+             | Limited     |
 
-**Safari PWA Notes:**
-- No service worker (uses app cache instead)
-- No installation prompt
-- Manual "Add to Home Screen" only
+Safari does not support the install prompt. Users must manually use "Add to Home Screen".
+
+
+---
+
+## Security Checklist
+
+For any production deployment:
+
+- Set a strong random JWT_SECRET (minimum 32 characters)
+- Change the ADMIN_PASSWORD from the default
+- Use HTTPS everywhere
+- Run npm audit regularly and update dependencies
+- Configure CORS to allow only your production domain
+- Back up the SQLite database on a schedule
+- Monitor the admin dashboard for unusual activity
+
 
 ---
 
 ## Troubleshooting
 
-### "App won't sync with server"
-- Check network connection
-- Verify JWT token hasn't expired
-- Check browser console for API errors
-- Ensure backend is running
+App will not sync with server
+- Verify the backend is running and reachable.
+- Check the browser console for 401 errors (token may have expired).
+- Log out and log back in to obtain a fresh token.
 
-### "Charts not showing"
-- Check internet connection (Chart.js loads from CDN)
-- Disable ad blockers that might block CDN
-- Check browser console for errors
+Charts not rendering
+- Chart.js loads from a CDN. Check internet connectivity.
+- Disable ad blockers that may block CDN requests.
 
-### "Service Worker won't update"
-- Clear browser cache
-- Go to DevTools → Application → Clear Storage
-- Hard refresh (Ctrl+Shift+R)
+Service worker serving stale content
+- Open DevTools, go to Application, and click "Clear storage".
+- Hard-refresh the page with Ctrl+Shift+R.
 
-### "OAuth login not working"
-- Verify client ID is correct in `.env`
-- Check redirect URIs are configured in OAuth app settings
-- Ensure you're using HTTPS in production
-- Check console for specific error messages
+OAuth login failing
+- Verify the client ID in .env matches the provider's developer console.
+- Check that redirect URIs are configured for the current domain.
+- Ensure HTTPS is active in production.
+
 
 ---
 
-## License & Credits
+## Contact
 
-- **Chart.js**: Charting library (Apache 2.0)
-- **SheetJS**: Excel export support
-- **Google Fonts**: Typography
-
----
-
-## Support
-
-Found a bug or have a suggestion? Contact Jennifer:
-- **Email**: jenbrox@gmail.com
-- **GitHub Issues**: [Report on GitHub](https://github.com/jenbrox/jenbrox.github.io/issues)
-- **LinkedIn**: [Jennifer Broxson](https://www.linkedin.com/in/jenniferbroxson)
-
----
-
-Last updated: March 2026
+- GitHub: https://github.com/jenbrox
+- LinkedIn: https://www.linkedin.com/in/jenniferbroxson
+- Email: jenbrox@gmail.com

@@ -1,8 +1,19 @@
 /* ===================================================
-   JENTRAX — CHARTS
-   Manages all Chart.js instances.
-   Create once in initCharts(), update only thereafter.
-   Depends on: Utils, Store, Transactions (global Chart)
+   JENTRAK — CHARTS
+
+   Manages all Chart.js instances used on the dashboard.
+   Each chart is created once during initCharts() and then
+   updated in place whenever the active month changes.
+
+   Charts:
+     - Category doughnut  (spending breakdown by category)
+     - Budget vs Actual bar (per-category budget comparison)
+     - Monthly trend line  (income vs expenses over 6 months)
+     - Year-over-year line (same months across calendar years)
+     - Spending heatmap bar (daily spend intensity)
+     - Cash-flow forecast bar (projected income/expenses)
+
+   Depends on: Utils, Store, Transactions, and the global Chart object
    =================================================== */
 
 'use strict';
@@ -15,6 +26,7 @@ const Charts = (() => {
      SHARED HELPERS
   ═══════════════════════════════════════════════ */
 
+  // Formats a chart tooltip value as the user's chosen currency.
   function currencyTooltipCallback(context) {
     const settings = Store.getSettings();
     const label = context.dataset.label || '';
@@ -22,6 +34,7 @@ const Charts = (() => {
     return label ? `${label}: ${value}` : value;
   }
 
+  // Formats a Y-axis tick label as currency.
   function currencyAxisCallback(value) {
     const settings = Store.getSettings();
     return Utils.formatCurrency(value, settings);
@@ -31,6 +44,8 @@ const Charts = (() => {
      CENTER-TEXT PLUGIN  (doughnut empty state)
   ═══════════════════════════════════════════════ */
 
+  // Custom Chart.js plugin that draws "No expense data" in the centre
+  // of the doughnut chart when every slice is zero.
   const centerTextPlugin = {
     id: 'centerText',
     afterDraw(chart) {
@@ -54,6 +69,9 @@ const Charts = (() => {
      INIT  — call once after DOM is ready
   ═══════════════════════════════════════════════ */
 
+  // Creates every Chart.js instance once after the DOM is ready.
+  // Sets global font, legend position, and animation defaults, then
+  // builds each chart on its respective canvas element.
   function initCharts() {
     if (typeof Chart === 'undefined') {
       console.warn('[Charts] Chart.js not loaded yet, deferring...');
@@ -321,6 +339,7 @@ const Charts = (() => {
      UPDATE FUNCTIONS
   ═══════════════════════════════════════════════ */
 
+  // Refreshes the category doughnut with the current month's expense breakdown.
   function updateCategoryPieChart(monthKey) {
     const chart = CHART_INSTANCES.pie;
     if (!chart) return;
@@ -332,6 +351,8 @@ const Charts = (() => {
     chart.update();
   }
 
+  // Updates the budget-vs-actual bar chart. Only categories with a
+  // monthly budget appear. Bars that exceed the budget are coloured red.
   function updateBudgetBarChart(monthKey) {
     const chart = CHART_INSTANCES.bar;
     if (!chart) return;
@@ -356,6 +377,7 @@ const Charts = (() => {
     chart.update();
   }
 
+  // Redraws the income-vs-expenses trend line for the last N months.
   function updateTrendLineChart(numMonths) {
     const chart = CHART_INSTANCES.line;
     if (!chart) return;
@@ -367,6 +389,8 @@ const Charts = (() => {
     chart.update();
   }
 
+  // Populates the year-over-year comparison chart. Hides the chart
+  // card entirely when fewer than two calendar years of data exist.
   function updateYoYChart() {
     const chart = CHART_INSTANCES.yoy;
     const card = document.getElementById('yoy-chart-card');
@@ -384,6 +408,8 @@ const Charts = (() => {
     chart.update();
   }
 
+  // Renders a per-day spending heatmap for the selected month.
+  // Bar opacity scales linearly with the day's spend relative to the max.
   function updateHeatmapChart(monthKey) {
     const chart = CHART_INSTANCES.heatmap;
     if (!chart) return;
@@ -411,6 +437,8 @@ const Charts = (() => {
     }
   }
 
+  // Draws the 3-month cash-flow forecast. Hides the card when there
+  // is no data to project (e.g. no recurring templates or history).
   function updateForecastChart() {
     const chart = CHART_INSTANCES.forecast;
     const card = document.getElementById('forecast-card');
@@ -430,6 +458,8 @@ const Charts = (() => {
     chart.update();
   }
 
+  // Convenience method called by Dashboard.renderDashboard() to
+  // refresh every chart in a single call.
   function updateAllCharts(monthKey) {
     updateCategoryPieChart(monthKey);
     updateBudgetBarChart(monthKey);

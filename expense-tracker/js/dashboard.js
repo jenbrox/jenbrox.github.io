@@ -1,7 +1,16 @@
 /* ===================================================
-   JENTRAX — DASHBOARD
-   Computes and renders the dashboard view.
-   All data is derived from store on each render.
+   JENTRAK — DASHBOARD
+
+   Computes and renders the main dashboard view.
+   All figures are derived fresh from the Store on every
+   render so the display always reflects the latest data.
+
+   Responsibilities:
+     - Aggregate income, expenses, and budget for a month
+     - Update the four summary stat cards
+     - Show per-category budget warnings (80 %+ usage)
+     - Trigger chart and insight updates
+
    Depends on: Utils, Store, Transactions, Categories, UI, Charts
    =================================================== */
 
@@ -13,6 +22,8 @@ const Dashboard = (() => {
      COMPUTE
   ═══════════════════════════════════════════════ */
 
+  // Pulls the month summary and per-category breakdown from Transactions,
+  // then derives budget utilisation percentages and remaining amounts.
   function computeDashboardData(monthKey) {
     const settings = Store.getSettings();
     const summary = Transactions.summarizeMonth(monthKey);
@@ -39,6 +50,8 @@ const Dashboard = (() => {
      RENDER
   ═══════════════════════════════════════════════ */
 
+  // Writes computed totals into the four dashboard stat cards:
+  // Income, Expenses, Net (positive/negative colouring), and Remaining Budget.
   function renderSummaryCards(data) {
     const settings = Store.getSettings();
     const fmt = v => Utils.formatCurrency(v, settings);
@@ -74,6 +87,8 @@ const Dashboard = (() => {
     }
   }
 
+  // Injects warning banners for any category at 80 % or more of its budget.
+  // Categories over 100 % get a danger-level banner instead of a warning.
   function renderBudgetWarnings(categoryBreakdown) {
     const container = document.getElementById('budget-warnings');
     if (!container) return;
@@ -102,6 +117,8 @@ const Dashboard = (() => {
     }).join('');
   }
 
+  // Sets the human-readable month label (e.g. "March 2026") on the
+  // dashboard heading and on each chart section title.
   function renderMonthLabels(monthKey) {
     const label = Utils.monthLabel(monthKey);
     ['dash-month-label', 'pie-month-label', 'bar-month-label'].forEach(id => {
@@ -114,6 +131,8 @@ const Dashboard = (() => {
      PUBLIC: Render / Update
   ═══════════════════════════════════════════════ */
 
+  // Full dashboard render: computes data, updates cards, warnings,
+  // insights, net-worth sidebar, and refreshes every chart.
   function renderDashboard(monthKey) {
     const data = computeDashboardData(monthKey);
     renderMonthLabels(monthKey);
@@ -132,6 +151,8 @@ const Dashboard = (() => {
     Charts.updateAllCharts(monthKey);
   }
 
+  // Convenience wrapper: only re-renders when the user is actually
+  // viewing the dashboard section, to avoid unnecessary DOM work.
   function updateDashboard(monthKey) {
     if (UI.currentSection() === 'dashboard') {
       renderDashboard(monthKey);

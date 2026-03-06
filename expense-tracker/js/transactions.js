@@ -1,6 +1,13 @@
 /* ===================================================
-   JENTRAX — TRANSACTIONS
-   CRUD operations and analytical queries.
+   JENTRAK — TRANSACTIONS
+
+   CRUD operations for income and expense records, along
+   with analytical queries used by the dashboard and charts.
+
+   Handles validation, tag parsing, month-based filtering,
+   category aggregation, trend analysis, cash-flow forecasting,
+   spending heatmaps, and duplicate detection.
+
    Depends on: Utils, Store
    =================================================== */
 
@@ -9,6 +16,9 @@
 const Transactions = (() => {
 
   /* ── CRUD ── */
+
+  // Creates a new transaction after validating all required fields.
+  // Returns { success, transaction } on success or { success, errors } on failure.
   function addTransaction(fields) {
     const { valid, errors } = validateFields(fields);
     if (!valid) return { success: false, errors };
@@ -32,6 +42,8 @@ const Transactions = (() => {
     return { success: true, transaction: txn };
   }
 
+  // Updates an existing transaction by ID. Merges new field values while
+  // preserving the original creation timestamp. Returns the updated record.
   function updateTransaction(id, fields) {
     const all = Store.getTransactions();
     const idx = all.findIndex(t => t.id === id);
@@ -55,6 +67,7 @@ const Transactions = (() => {
     return { success: true, transaction: all[idx] };
   }
 
+  // Removes a transaction by ID. Returns true if a record was deleted.
   function deleteTransaction(id) {
     const all = Store.getTransactions();
     const filtered = all.filter(t => t.id !== id);
@@ -63,11 +76,15 @@ const Transactions = (() => {
     return true;
   }
 
+  // Looks up a single transaction by its unique ID.
   function getTransactionById(id) {
     return Store.getTransactions().find(t => t.id === id) || null;
   }
 
   /* ── Tag Parsing ── */
+
+  // Normalises a tag value into a lowercase trimmed array.
+  // Accepts a comma-separated string or an existing array.
   function parseTags(input) {
     if (Array.isArray(input)) return input;
     if (!input || typeof input !== 'string') return [];
@@ -75,6 +92,9 @@ const Transactions = (() => {
   }
 
   /* ── Validation ── */
+
+  // Checks that type is income/expense, amount is positive,
+  // a category is selected, and the date is a valid ISO string.
   function validateFields(fields) {
     const errors = [];
     if (!fields.type || !['income', 'expense'].includes(fields.type)) {
@@ -93,12 +113,17 @@ const Transactions = (() => {
   }
 
   /* ── Queries ── */
+
+  // Returns all transactions whose date falls within the given month,
+  // sorted newest-first by date string comparison.
   function getTransactionsForMonth(monthKey) {
     return Store.getTransactions()
       .filter(t => Utils.getMonthKey(t.date) === monthKey)
       .sort((a, b) => b.date.localeCompare(a.date));
   }
 
+  // Narrows the month's transactions by an optional type ('income'/'expense')
+  // and/or category ID. Pass 'all' or falsy to skip a filter.
   function getFilteredTransactions(monthKey, typeFilter, categoryFilter) {
     return getTransactionsForMonth(monthKey).filter(t => {
       if (typeFilter && typeFilter !== 'all' && t.type !== typeFilter) return false;
@@ -108,6 +133,9 @@ const Transactions = (() => {
   }
 
   /* ── Aggregations ── */
+
+  // Totals income and expenses for a single month, returning
+  // { income, expenses, net, incomeCount, expenseCount }.
   function summarizeMonth(monthKey) {
     const txns = getTransactionsForMonth(monthKey);
     let income = 0, expenses = 0, incomeCount = 0, expenseCount = 0;
@@ -123,6 +151,9 @@ const Transactions = (() => {
     return { income, expenses, net: income - expenses, incomeCount, expenseCount };
   }
 
+  // Groups expense transactions by category for the given month.
+  // Each entry includes totalSpent, the category's budget, and the
+  // percentage of budget consumed. Sorted by spend descending.
   function summarizeByCategory(monthKey) {
     const txns = getTransactionsForMonth(monthKey).filter(t => t.type === 'expense');
     const categories = Store.getCategories();
@@ -150,6 +181,8 @@ const Transactions = (() => {
     })).sort((a, b) => b.totalSpent - a.totalSpent);
   }
 
+  // Builds an array of { monthKey, label, income, expenses } objects
+  // for the last N months, used by the trend line chart.
   function getMonthlyTrend(numMonths = 6) {
     const monthKeys = Utils.lastNMonthKeys(numMonths);
     return monthKeys.map(key => {
@@ -159,6 +192,10 @@ const Transactions = (() => {
   }
 
   /* ── Year-over-Year Data ── */
+
+  // Compares monthly expense totals across calendar years.
+  // Returns Chart.js-ready datasets only when two or more years of
+  // data exist; otherwise returns empty arrays.
   function getYearOverYearData() {
     const txns = Store.getTransactions().filter(t => t.type === 'expense');
     if (txns.length === 0) return { years: [], monthLabels: [], datasets: [] };
@@ -202,6 +239,13 @@ const Transactions = (() => {
   }
 
   /* ── Top Spending Insights ── */
+
+  // Generates an array of insight cards for the dashboard:
+  //   1. Largest single expense
+  //   2. Highest-spend category
+  //   3. Average daily spending
+  //   4. Transaction count breakdown
+  //   5. Month-over-month change (only when prior month data exists)
   function getInsights(monthKey) {
     const txns = Store.getTransactions();
     const monthTxns = txns.filter(t => Utils.getMonthKey(t.date) === monthKey);
@@ -303,6 +347,10 @@ const Transactions = (() => {
   }
 
   /* ── Duplicate Detection ── */
+
+  // Searches for existing transactions that match the same amount,
+  // date, category, and type. Useful for warning users before saving
+  // what may be an accidental duplicate entry.
   function findDuplicates(fields) {
     const all = Store.getTransactions();
     const amount = parseFloat(fields.amount);
@@ -317,6 +365,10 @@ const Transactions = (() => {
   }
 
   /* ── Cash Flow Forecast ── */
+
+  // Projects income and expenses for the next N months by combining
+  // active recurring templates with a rolling 3-month average of
+  // historical spending. Used by the forecast bar chart.
   function getCashFlowForecast(months = 3) {
     const recurring = typeof Recurring !== 'undefined' ? Recurring.getAllRecurring().filter(r => r.isActive) : [];
     const currentMonth = Utils.getCurrentMonthKey();
@@ -358,6 +410,9 @@ const Transactions = (() => {
   }
 
   /* ── Spending Heatmap Data ── */
+
+  // Returns one { day, amount } entry per calendar day of the month.
+  // Days with no expenses report amount 0. Feeds the heatmap bar chart.
   function getSpendingHeatmap(monthKey) {
     const txns = getTransactionsForMonth(monthKey).filter(t => t.type === 'expense');
     const dayMap = {};

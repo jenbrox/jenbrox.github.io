@@ -1,734 +1,312 @@
-# Jentrak Backend — API Reference & Setup Guide
+# Jentrak Backend -- API Reference
 
-Node.js + Express.js + SQLite backend for the Jentrak expense tracker PWA.
+Node.js + Express.js + SQLite backend for the Jentrak expense tracker.
+
 
 ---
 
 ## Quick Start
 
-### Installation
 ```bash
 cd expense-tracker/server
 npm install
-```
-
-### Configuration (create `.env`)
-```env
-JWT_SECRET=your_secret_key_here
-GOOGLE_CLIENT_ID=your_google_client_id
-FACEBOOK_APP_ID=your_facebook_app_id
-GITHUB_CLIENT_ID=your_github_client_id
-ADMIN_PASSWORD=admin_password_here
-```
-
-### Running Locally
-```bash
 npm start
 ```
-- Server starts on `http://localhost:5175`
-- SQLite database created at `jentrak.db`
-- Static files served from parent `expense-tracker/` directory
+
+Server starts on http://localhost:5175. SQLite database is created automatically at jentrak.db.
+
+Create a .env file:
+
+```
+JWT_SECRET=replace_with_a_strong_random_string
+GOOGLE_CLIENT_ID=
+FACEBOOK_APP_ID=
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+ADMIN_PASSWORD=replace_with_a_strong_password
+```
+
 
 ---
 
-## Architecture
+## Technology
 
-### Tech Stack
-- **Runtime**: Node.js 14+
-- **Framework**: Express.js 4.x
-- **Database**: SQLite3 (better-sqlite3, WAL mode)
-- **Auth**: JWT (jsonwebtoken) + bcryptjs
-- **OAuth**: Google, Facebook, GitHub
-- **Security**: Helmet.js, CORS
+- Runtime: Node.js 14+
+- Framework: Express.js 4.x
+- Database: SQLite3 via better-sqlite3, WAL mode, foreign keys enabled
+- Authentication: JWT (jsonwebtoken) with bcryptjs for password hashing
+- OAuth: Google (google-auth-library), Facebook (Graph API), GitHub (code exchange)
+- Security: Helmet.js for HTTP headers, CORS middleware
+- Default port: 5175 (override with PORT environment variable)
 
-### Database Location
-- **Development**: `expense-tracker/server/jentrak.db`
-- **Production**: Set via environment or Docker volume
-
-### Port
-- Default: `5175`
-- Override: Set `PORT` environment variable
 
 ---
 
 ## Database Schema
 
-### `users` Table
-Stores user account information.
+### users
+
+Stores account credentials and profile information.
 
 ```sql
 CREATE TABLE users (
-  id TEXT PRIMARY KEY,              -- Format: user_<24-char-hex>
-  email TEXT UNIQUE NOT NULL,
-  name TEXT,
-  password_hash TEXT,                -- Null for OAuth-only users
-  auth_provider TEXT,                -- 'local', 'google', 'facebook', 'github'
-  auth_provider_id TEXT,             -- Provider's user ID
+  id TEXT PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL COLLATE NOCASE,
+  name TEXT NOT NULL,
+  password_hash TEXT,
+  auth_provider TEXT DEFAULT 'local',
+  auth_provider_id TEXT,
   avatar_url TEXT,
   signup_ip TEXT,
-  country TEXT,                      -- Filled via IP geolocation
-  created_at TEXT,                   -- ISO timestamp
-  updated_at TEXT                    -- ISO timestamp
-)
+  country TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 ```
 
-**Indexes:**
-- `email` (unique) - fast login lookup
-- `auth_provider_id` - OAuth token exchange
+password_hash is null for OAuth-only users. country is filled by a best-effort IP geolocation lookup on signup.
 
-### `user_data` Table
-Stores all user app data as JSON (one row per store per user).
+### user_data
+
+Stores all application data for each user as JSON strings. The composite primary key of (user_id, store_key) means each user has one row per store.
 
 ```sql
 CREATE TABLE user_data (
   user_id TEXT NOT NULL,
-  store_key TEXT NOT NULL,          -- 'transactions', 'categories', etc.
-  data TEXT NOT NULL,                -- JSON string of store contents
-  updated_at TEXT,                   -- ISO timestamp
-  PRIMARY KEY (user_id, store_key)
-)
+  store_key TEXT NOT NULL,
+  data TEXT NOT NULL DEFAULT '[]',
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, store_key),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 ```
 
-**Store Keys** (8 stores per user):
-1. `transactions` - Income and expense records
-2. `categories` - Custom categories with budgets
-3. `settings` - User settings (currency, date format, etc.)
-4. `recurring` - Recurring transaction templates
-5. `goals` - Savings goals
-6. `debts` - Loan tracking
-7. `wishlist` - Shopping list items
-8. `accounts` - Bank/financial accounts
+Valid store keys: transactions, categories, settings, recurring, goals, debts, wishlist, accounts.
 
-### `analytics_events` Table
-Tracks user activity for admin dashboard.
+### analytics_events
+
+Tracks user activity for the admin dashboard.
 
 ```sql
 CREATE TABLE analytics_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  event_type TEXT NOT NULL,         -- 'signup', 'login', 'page_view', 'link_click'
-  user_id TEXT,                      -- Null for non-authenticated events
-  ip_address TEXT,
+  event TEXT NOT NULL,
+  ip TEXT,
   user_agent TEXT,
-  metadata TEXT,                     -- JSON with event-specific data
-  created_at TEXT                    -- ISO timestamp
-)
+  user_id TEXT,
+  meta TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 ```
+
+Event types: signup, login, page_view, link_click.
+
 
 ---
 
-## Authentication
+## Authentication Flow
 
-### JWT Token Flow
+### JWT tokens
 
-1. **Signup/Login** (POST `/api/auth/signup` or `/api/auth/login`)
-   - User submits email + password
-   - Server validates credentials
-   - Password hashed with bcryptjs (10 rounds) before storage
-   - Server returns `{ token, user }`
-   - Client stores token in `localStorage.jentrak_token`
+All authenticated endpoints require an Authorization header:
 
-2. **Subsequent Requests**
-   - Client includes header: `Authorization: Bearer <token>`
-   - Server validates token with `jsonwebtoken`
-   - If valid, request proceeds; if expired/invalid, returns 401
-   - Client intercepts 401 and redirects to login page
-
-3. **Token Details**
-   - Algorithm: HS256 (HMAC SHA256)
-   - Secret: `JWT_SECRET` environment variable
-   - Expiry: 30 days from issue
-   - Payload: `{ userId, email, iat, exp }`
-
-### OAuth2 Flow
-
-#### Google
 ```
-1. Frontend: Redirect to Google consent screen
-2. Google: Returns ID token to frontend
-3. Frontend: POST /api/auth/google { idToken }
-4. Backend: Verify token with Google OAuth2Client
-5. Backend: Create/update user, return JWT
+Authorization: Bearer <token>
 ```
 
-**Setup:**
-- Create OAuth2 credentials at [Google Cloud Console](https://console.cloud.google.com)
-- Set authorized redirect URIs: `https://www.jenniferbroxson.com/`
-- Add `GOOGLE_CLIENT_ID` to `.env`
+Tokens are signed with HS256 using the JWT_SECRET environment variable and expire after 30 days. The payload contains userId and email.
 
-#### Facebook
-```
-1. Frontend: Redirect to Facebook login
-2. Facebook: Returns access token to frontend
-3. Frontend: POST /api/auth/facebook { accessToken }
-4. Backend: Exchange token for user profile via Graph API
-5. Backend: Create/update user, return JWT
-```
+If a request returns HTTP 401, the client should discard the stored token and redirect to the login page.
 
-**Setup:**
-- Create app at [Facebook Developers](https://developers.facebook.com)
-- Set OAuth redirect URIs
-- Add `FACEBOOK_APP_ID` to `.env`
+### Password hashing
 
-#### GitHub
-```
-1. Frontend: Redirect to GitHub authorization
-2. GitHub: Returns authorization code to frontend
-3. Frontend: POST /api/auth/github { code }
-4. Backend: Exchange code for access token
-5. Backend: Fetch user profile and emails
-6. Backend: Create/update user, return JWT
-```
+Passwords are hashed with bcryptjs using 10 salt rounds before storage. The original password is never stored or logged.
 
-**Setup:**
-- Create OAuth app at [GitHub Settings](https://github.com/settings/developers)
-- Set Authorization callback URL
-- Add `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` to `.env`
+### OAuth
+
+Each OAuth provider follows the same server-side pattern:
+
+1. Client sends a provider-specific token or code to the server.
+2. Server verifies it with the provider's API.
+3. Server creates or updates the user record.
+4. Server issues a JWT and returns it with the user profile.
+
+Google requires a GOOGLE_CLIENT_ID. The server verifies the ID token using google-auth-library.
+
+Facebook requires a FACEBOOK_APP_ID. The server exchanges the access token for a user profile via the Graph API.
+
+GitHub requires GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET. The server exchanges the authorisation code for an access token, then fetches the user profile and email.
+
 
 ---
 
 ## API Endpoints
 
-### Auth Routes (No Auth Required)
+### Authentication (no token required)
 
-#### POST `/api/auth/signup`
-Register a new user with email/password.
+POST /api/auth/signup
+- Body: { email, name, password }
+- Password must be at least 6 characters.
+- Returns: { token, user }
 
-**Request:**
-```json
-{
-  "email": "user@example.com",
-  "password": "SecurePassword123!",
-  "name": "John Doe"
-}
-```
+POST /api/auth/login
+- Body: { email, password }
+- Returns: { token, user }
 
-**Response:** `200 OK`
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIs...",
-  "user": {
-    "id": "user_abc123def456",
-    "email": "user@example.com",
-    "name": "John Doe",
-    "auth_provider": "local"
-  }
-}
-```
+POST /api/auth/google
+- Body: { idToken }
+- Returns: { token, user }
 
-**Errors:**
-- `400`: Email already exists
-- `400`: Invalid email or password too short
-- `500`: Server error
+POST /api/auth/facebook
+- Body: { accessToken }
+- Returns: { token, user }
 
-#### POST `/api/auth/login`
-Login with email/password.
+POST /api/auth/github
+- Body: { code }
+- Returns: { token, user }
 
-**Request:**
-```json
-{
-  "email": "user@example.com",
-  "password": "SecurePassword123!"
-}
-```
+GET /api/auth/providers
+- Returns: { google: bool, facebook: bool, github: bool }
+- Indicates which OAuth providers have credentials configured.
 
-**Response:** `200 OK`
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIs...",
-  "user": { /* user object */ }
-}
-```
+### Authentication (token required)
 
-**Errors:**
-- `401`: Invalid credentials
-- `404`: User not found
+GET /api/auth/me
+- Returns: { user }
 
-#### POST `/api/auth/google`
-Login with Google ID token.
+PUT /api/auth/profile
+- Body: { name, email }
+- Returns: { user }
 
-**Request:**
-```json
-{
-  "idToken": "eyJhbGciOiJSUzI1NiIs..."
-}
-```
+PUT /api/auth/password
+- Body: { oldPassword, newPassword }
+- Only available for users with auth_provider "local".
 
-**Response:** `200 OK` (same as signup/login)
+PUT /api/auth/avatar
+- Body: { avatar } (base64-encoded image, max 10 MB)
+- Returns: { user }
 
-#### POST `/api/auth/facebook`
-Login with Facebook access token.
+DELETE /api/auth/avatar
+- Removes the user's avatar.
 
-**Request:**
-```json
-{
-  "accessToken": "EAABs..."
-}
-```
+### User Data (token required)
 
-**Response:** `200 OK`
+All data endpoints are scoped to the authenticated user.
 
-#### POST `/api/auth/github`
-Login with GitHub authorization code.
+GET /api/data
+- Returns all stores as a single object: { transactions: [...], categories: [...], ... }
 
-**Request:**
-```json
-{
-  "code": "e9ef..."
-}
-```
+GET /api/data/:store
+- Returns the contents of a single store.
+- Valid store names: transactions, categories, settings, recurring, goals, debts, wishlist, accounts.
 
-**Response:** `200 OK`
+PUT /api/data/:store
+- Body: { data: [...] }
+- Replaces the entire store.
 
-#### GET `/api/auth/providers`
-Check which OAuth providers are enabled.
+PUT /api/data
+- Body: { stores: { transactions: [...], categories: [...], ... } }
+- Bulk-saves multiple stores in one request.
 
-**Response:** `200 OK`
-```json
-{
-  "google": true,
-  "facebook": false,
-  "github": true
-}
-```
+DELETE /api/data
+- Deletes all data for the authenticated user. This is irreversible.
 
----
+### Analytics (no token required)
 
-### Auth Routes (Requires JWT)
+POST /api/track
+- Body: { event, meta }
+- Accepted event values: page_view, link_click.
+- Records the event with the client's IP and user agent.
 
-#### GET `/api/auth/me`
-Get current user info and validate token.
+### Admin (HTTP Basic Auth required)
 
-**Headers:**
-```
-Authorization: Bearer <token>
-```
+All admin endpoints require an Authorization header with Basic auth. Username is "admin" and the password is the ADMIN_PASSWORD environment variable.
 
-**Response:** `200 OK`
-```json
-{
-  "user": {
-    "id": "user_abc123",
-    "email": "user@example.com",
-    "name": "John Doe",
-    "avatar_url": "https://...",
-    "auth_provider": "local"
-  }
-}
-```
+POST /api/admin/login
+- Verifies admin credentials. Returns { authenticated: true }.
 
-**Errors:**
-- `401`: Invalid or expired token
+GET /api/admin/stats
+- Returns total users, signups today, signups this month, total logins, and page views.
 
-#### PUT `/api/auth/profile`
-Update user profile (name, email).
+GET /api/admin/stats/extended
+- Returns active users (7-day and 30-day), retention rate, database size, and uptime.
 
-**Request:**
-```json
-{
-  "name": "Jane Doe",
-  "email": "jane@example.com"
-}
-```
+GET /api/admin/chart?days=30
+- Returns event counts grouped by day for the specified period.
 
-**Response:** `200 OK` (returns updated user)
+GET /api/admin/users
+- Lists all users with ID, email, name, signup date, and last login.
 
-#### PUT `/api/auth/password`
-Change password (for local users only).
+GET /api/admin/events?limit=50
+- Returns the most recent analytics events.
 
-**Request:**
-```json
-{
-  "oldPassword": "CurrentPassword123!",
-  "newPassword": "NewPassword456!"
-}
-```
+GET /api/admin/user/:id
+- Returns detailed information for a specific user including login count and data size.
 
-**Response:** `200 OK`
-**Errors:**
-- `400`: Old password incorrect
-- `400`: Weak new password
+DELETE /api/admin/user/:id
+- Deletes the user and all their data. Irreversible.
 
-#### PUT `/api/auth/avatar`
-Upload avatar image (max 10MB).
+PUT /api/admin/user/:id/reset-password
+- Body: { tempPassword }
+- Sets the user's password to the provided value.
 
-**Request:**
-```json
-{
-  "avatar": "data:image/png;base64,iVBORw0KG..."
-}
-```
+GET /api/admin/countries
+- Returns user signups grouped by country.
 
-**Response:** `200 OK` (returns updated user)
+GET /api/admin/peak-hours
+- Returns login activity grouped by hour of day (0-23).
 
-#### DELETE `/api/auth/avatar`
-Remove avatar.
+GET /api/admin/browsers
+- Returns user agent statistics.
 
-**Response:** `200 OK`
+GET /api/admin/growth
+- Returns cumulative user signups over time.
+
+GET /api/admin/export/users
+- Downloads all users as a CSV file.
+
+GET /api/admin/export/events
+- Downloads all events as a CSV file.
+
 
 ---
 
-### Data Routes (Requires JWT)
+## Environment Variables
+
+| Variable              | Required | Description                                        |
+|-----------------------|----------|----------------------------------------------------|
+| PORT                  | No       | Server port. Default: 5175.                        |
+| JWT_SECRET            | Yes      | Secret key for signing JWT tokens.                 |
+| GOOGLE_CLIENT_ID      | No       | Google OAuth client ID.                            |
+| FACEBOOK_APP_ID       | No       | Facebook app ID.                                   |
+| GITHUB_CLIENT_ID      | No       | GitHub OAuth client ID.                            |
+| GITHUB_CLIENT_SECRET  | No       | GitHub OAuth client secret.                        |
+| ADMIN_PASSWORD        | No       | Password for the admin dashboard. Default: Jentrak123@. |
 
-All data is per-user and isolated on the server.
-
-#### GET `/api/data`
-Fetch all user stores (transactions, categories, etc.).
-
-**Response:** `200 OK`
-```json
-{
-  "transactions": [ /* array */ ],
-  "categories": [ /* array */ ],
-  "settings": { /* object */ },
-  "recurring": [ /* array */ ],
-  "goals": [ /* array */ ],
-  "debts": [ /* array */ ],
-  "wishlist": [ /* array */ ],
-  "accounts": [ /* array */ ]
-}
-```
-
-#### GET `/api/data/:store`
-Fetch a single store.
-
-**Examples:**
-- `GET /api/data/transactions`
-- `GET /api/data/categories`
-
-**Response:** `200 OK`
-```json
-[ /* array of items */ ]
-```
-
-#### PUT `/api/data/:store`
-Save a single store (replace all contents).
-
-**Request:**
-```json
-{
-  "data": [ /* array of items */ ]
-}
-```
-
-**Response:** `200 OK`
-
-#### PUT `/api/data`
-Bulk save multiple stores in one request.
-
-**Request:**
-```json
-{
-  "stores": {
-    "transactions": [ /* array */ ],
-    "categories": [ /* array */ ],
-    /* ... other stores ... */
-  }
-}
-```
-
-**Response:** `200 OK`
-
-#### DELETE `/api/data`
-Clear all user data (irreversible).
-
-**Response:** `200 OK`
-**Warning:** This deletes all transactions, categories, goals, etc.
-
----
-
-### Analytics Routes (No Auth Required)
-
-#### POST `/api/track`
-Track user events (page views, link clicks).
-
-**Request:**
-```json
-{
-  "eventType": "page_view",
-  "metadata": {
-    "page": "dashboard",
-    "timestamp": "2026-03-06T12:00:00Z"
-  }
-}
-```
-
-**Response:** `200 OK`
-
----
-
-### Admin Routes (HTTP Basic Auth)
-
-Admin endpoints require HTTP Basic Auth with credentials:
-- Username: `admin`
-- Password: Value of `ADMIN_PASSWORD` env var
-
-**Example header:**
-```
-Authorization: Basic YWRtaW46cGFzc3dvcmQxMjM=
-```
-
-#### POST `/api/admin/login`
-Verify admin credentials.
-
-**Response:** `200 OK`
-```json
-{ "authenticated": true }
-```
-
-#### GET `/api/admin/stats`
-Get overall platform statistics.
-
-**Response:** `200 OK`
-```json
-{
-  "totalUsers": 42,
-  "signupsToday": 3,
-  "signupsThisMonth": 18,
-  "totalLogins": 234,
-  "pageViews": 1205
-}
-```
-
-#### GET `/api/admin/stats/extended`
-Get detailed analytics.
-
-**Response:** `200 OK`
-```json
-{
-  "totalUsers": 42,
-  "activeUsersLast7days": 28,
-  "activeUsersLast30days": 38,
-  "retentionRate": 0.85,
-  "databaseSize": "2.5 MB",
-  "uptimeDays": 45
-}
-```
-
-#### GET `/api/admin/chart?days=30`
-Get event counts by day for charting.
-
-**Response:** `200 OK`
-```json
-[
-  { "date": "2026-03-01", "count": 42 },
-  { "date": "2026-03-02", "count": 38 },
-  /* ... */
-]
-```
-
-#### GET `/api/admin/users`
-List all users with basic info.
-
-**Response:** `200 OK`
-```json
-[
-  {
-    "id": "user_abc123",
-    "email": "user@example.com",
-    "name": "John Doe",
-    "created_at": "2026-01-15T10:30:00Z",
-    "lastLogin": "2026-03-06T09:45:00Z"
-  },
-  /* ... */
-]
-```
-
-#### GET `/api/admin/events?limit=50`
-Get recent analytics events.
-
-**Response:** `200 OK`
-```json
-[
-  {
-    "event_type": "login",
-    "user_id": "user_abc123",
-    "created_at": "2026-03-06T09:45:00Z"
-  },
-  /* ... */
-]
-```
-
-#### GET `/api/admin/user/:id`
-Get detailed info for a specific user.
-
-**Response:** `200 OK`
-```json
-{
-  "id": "user_abc123",
-  "email": "user@example.com",
-  "name": "John Doe",
-  "signupDate": "2026-01-15T10:30:00Z",
-  "lastLogin": "2026-03-06T09:45:00Z",
-  "loginCount": 12,
-  "dataSize": "245 KB",
-  "transactionCount": 87
-}
-```
-
-#### DELETE `/api/admin/user/:id`
-Delete a user and all their data (irreversible).
-
-**Response:** `200 OK`
-**Warning:** This is permanent
-
-#### PUT `/api/admin/user/:id/reset-password`
-Reset user's password to a temporary one.
-
-**Request:**
-```json
-{
-  "tempPassword": "TempPass123!"
-}
-```
-
-**Response:** `200 OK`
-
-#### GET `/api/admin/countries`
-Get user signups by country.
-
-**Response:** `200 OK`
-```json
-[
-  { "country": "United States", "count": 24 },
-  { "country": "Canada", "count": 6 },
-  /* ... */
-]
-```
-
-#### GET `/api/admin/peak-hours`
-Get login activity by hour of day.
-
-**Response:** `200 OK`
-```json
-[
-  { "hour": 0, "count": 5 },
-  { "hour": 1, "count": 3 },
-  /* ... hour 0-23 ... */
-]
-```
-
-#### GET `/api/admin/browsers`
-Get user agent statistics.
-
-**Response:** `200 OK`
-```json
-[
-  { "browser": "Chrome", "count": 28 },
-  { "browser": "Firefox", "count": 8 },
-  /* ... */
-]
-```
-
-#### GET `/api/admin/growth`
-Get user signups over time.
-
-**Response:** `200 OK`
-```json
-[
-  { "date": "2026-01-01", "cumulativeUsers": 10, "newSignups": 3 },
-  { "date": "2026-01-02", "cumulativeUsers": 12, "newSignups": 2 },
-  /* ... */
-]
-```
-
-#### GET `/api/admin/export/users`
-Export all users to CSV.
-
-**Response:** `200 OK` (CSV file download)
-
-#### GET `/api/admin/export/events`
-Export all events to CSV.
-
-**Response:** `200 OK` (CSV file download)
-
----
-
-## ⚙️ Environment Variables
-
-| Variable | Required | Example | Purpose |
-|----------|----------|---------|---------|
-| `PORT` | No | `5175` | Server port (default: 5175) |
-| `JWT_SECRET` | **Yes** | `super_secret_key_here` | JWT signing secret |
-| `GOOGLE_CLIENT_ID` | No | `abc123...` | Google OAuth client ID |
-| `FACEBOOK_APP_ID` | No | `abc123...` | Facebook app ID |
-| `GITHUB_CLIENT_ID` | No | `abc123...` | GitHub OAuth client ID |
-| `GITHUB_CLIENT_SECRET` | No | `secret...` | GitHub OAuth secret |
-| `ADMIN_PASSWORD` | No | `admin123` | Admin dashboard password |
-| `NODE_ENV` | No | `production` | Set to `production` for deployment |
-
----
-
-## 📊 Security Best Practices
-
-### Production Checklist
-- [ ] **JWT_SECRET**: Generate strong random secret (min 32 chars)
-- [ ] **ADMIN_PASSWORD**: Change from default
-- [ ] **HTTPS**: Always use HTTPS in production
-- [ ] **CORS**: Configure for your domain only
-- [ ] **Database**: Backup regularly
-- [ ] **Dependencies**: Run `npm audit` and update regularly
-- [ ] **Logs**: Monitor error logs
-- [ ] **Rate Limiting**: Consider adding rate limit middleware
-- [ ] **Environment**: Use `.env` file (never commit secrets)
-- [ ] **OAuth Credentials**: Keep secret keys private
-
-### Implemented Security Features
-✅ Password hashing with bcryptjs (10 rounds)
-✅ JWT token expiry (30 days)
-✅ Per-user data isolation
-✅ Helmet.js headers
-✅ CORS configuration
-✅ Input validation
-✅ Error messages don't leak info
-✅ WAL mode for SQLite (better concurrency)
-✅ Foreign key constraints enabled
-
----
-
-## Troubleshooting
-
-### Database locked error
-- SQLite WAL mode is enabled (good for concurrency)
-- If persistent, check for long-running queries
-- Restart server: `npm start`
-
-### JWT token invalid/expired
-- Tokens expire after 30 days
-- User must re-login
-- Check `JWT_SECRET` matches between server restart
-
-### OAuth not working
-- Verify client IDs in `.env`
-- Check redirect URIs configured in OAuth apps
-- Ensure HTTPS in production
-- Check browser console for specific errors
-
-### Memory leak on long uptime
-- Process all user data requests asynchronously
-- Monitor with `node --max-old-space-size=2048 server.js`
-- Consider adding process monitoring (PM2)
 
 ---
 
 ## Deployment
 
-### Using PM2 (Process Manager)
+### PM2 (process manager)
+
 ```bash
 npm install -g pm2
-pm2 start server.js --name "jentrak"
+pm2 start server.js --name jentrak
 pm2 startup
 pm2 save
 ```
 
-### Using Docker
+### Docker
+
 ```dockerfile
-FROM node:16-alpine
+FROM node:18-alpine
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm install --production
 COPY . .
 EXPOSE 5175
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
 ```
 
 ```bash
@@ -736,8 +314,10 @@ docker build -t jentrak .
 docker run -p 5175:5175 -e JWT_SECRET=your_secret jentrak
 ```
 
-### Using systemd (Linux)
-Create `/etc/systemd/system/jentrak.service`:
+### systemd (Linux)
+
+Create /etc/systemd/system/jentrak.service:
+
 ```ini
 [Unit]
 Description=Jentrak Backend
@@ -747,30 +327,45 @@ After=network.target
 Type=simple
 User=www-data
 WorkingDirectory=/path/to/server
-ExecStart=/usr/bin/npm start
+ExecStart=/usr/bin/node server.js
 Restart=always
+Environment=JWT_SECRET=your_secret
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-Then:
 ```bash
 sudo systemctl enable jentrak
 sudo systemctl start jentrak
 ```
 
----
-
-## License
-
-Open source — use, modify, and share!
 
 ---
 
-## 📧 Support
+## Production Security Checklist
 
-Issues? Contact Jennifer:
-- **Email**: jenbrox@gmail.com
-- **GitHub**: https://github.com/jenbrox
-- **LinkedIn**: https://www.linkedin.com/in/jenniferbroxson
+- Generate a JWT_SECRET of at least 32 random characters.
+- Change ADMIN_PASSWORD from the default.
+- Serve over HTTPS (required for OAuth).
+- Configure CORS to accept only your production domain.
+- Run npm audit periodically and update dependencies.
+- Back up jentrak.db on a regular schedule.
+- Monitor the admin dashboard for unusual signup or login patterns.
+
+
+---
+
+## Troubleshooting
+
+Database locked errors
+- WAL mode is already enabled. If the error persists, check for long-running queries or restart the server.
+
+JWT invalid or expired
+- Tokens last 30 days. The user must log in again after expiry.
+- Verify JWT_SECRET has not changed between server restarts.
+
+OAuth not working
+- Confirm the client ID and secret in .env match the provider console.
+- Confirm redirect URIs include the exact production URL.
+- Check the server logs for the specific error message.

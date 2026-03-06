@@ -6,13 +6,13 @@ Comprehensive guide to the 14 JavaScript modules that power Jentrak's frontend.
 
 ## Overview
 
-All modules use the **Revealing Module Pattern** (IIFE + return public API). This provides:
+All modules use the Revealing Module Pattern (IIFE + return public API). This provides:
 - Encapsulation (private functions not exposed)
 - Clean public API
 - No external dependencies (except Chart.js CDN)
 - Minimal code size
 
-**Global Scope:** Each module is a global const object:
+Global Scope: Each module is a global const object:
 ```javascript
 const Utils = (() => { /* ... */ })();  // Available as window.Utils
 const Store = (() => { /* ... */ })();  // Available as window.Store
@@ -43,7 +43,7 @@ Charts (depends on Utils, Transactions)
 App (orchestrates everything)
 ```
 
-**Golden Rule**: A module can only depend on modules listed above it in the dependency graph. This prevents circular dependencies.
+Golden Rule: A module can only depend on modules listed above it in the dependency graph. This prevents circular dependencies.
 
 ---
 
@@ -51,11 +51,11 @@ App (orchestrates everything)
 
 ### 1. `utils.js` (Pure Utilities)
 
-**Purpose**: Date/number/string formatting, ID generation, validation.
-**Dependencies**: None
-**Size**: ~5 KB
+Purpose: Date/number/string formatting, ID generation, validation.
+Dependencies: None
+Size: ~5 KB
 
-**Key Functions**:
+Key Functions:
 - `generateId(prefix)` - Create unique IDs: `txn_1709892345000_a3b2`
 - `formatCurrency(amount, settings)` - Format as currency with symbol
 - `formatDate(isoDate, format)` - Convert YYYY-MM-DD to other formats
@@ -67,7 +67,7 @@ App (orchestrates everything)
 - `isValidDate(str)` - Validate ISO date format
 - `debounce(fn, ms)` - Debounce function execution
 
-**Usage**:
+Usage:
 ```javascript
 const id = Utils.generateId('txn');     // txn_1709892345000_a3b2
 const formatted = Utils.formatCurrency(123.45, {currencySymbol: '$'});  // $123.45
@@ -78,11 +78,11 @@ const date = Utils.formatDate('2026-03-15', 'MM/DD/YYYY');  // 03/15/2026
 
 ### 2. `auth.js` (Authentication)
 
-**Purpose**: JWT token management, API calls, logout flow.
-**Dependencies**: Utils
-**Size**: ~4 KB
+Purpose: JWT token management, API calls, logout flow.
+Dependencies: Utils
+Size: ~4 KB
 
-**Key Functions**:
+Key Functions:
 - `getToken()` - Retrieve JWT from localStorage
 - `getUser()` - Retrieve user profile from localStorage
 - `isLoggedIn()` - Check if user is authenticated
@@ -94,7 +94,7 @@ const date = Utils.formatDate('2026-03-15', 'MM/DD/YYYY');  // 03/15/2026
 - `saveAllStores(stores)` - Bulk sync all stores to server
 - `verifyToken()` - Validate token with server
 
-**Usage**:
+Usage:
 ```javascript
 if (!Auth.isLoggedIn()) {
   Auth.requireAuth();  // Redirects to login
@@ -105,7 +105,7 @@ fetch('/api/data', {
 });
 ```
 
-**Token Flow**:
+Token Flow:
 1. Login → server returns JWT
 2. Store in localStorage: `jentrak_token`
 3. Include in all API requests: `Authorization: Bearer <token>`
@@ -116,11 +116,11 @@ fetch('/api/data', {
 
 ### 3. `store.js` (Data Persistence)
 
-**Purpose**: Three-tier data storage with server sync.
-**Dependencies**: Utils, Auth (+ all data modules)
-**Size**: ~27 KB (largest module)
+Purpose: Three-tier data storage with server sync.
+Dependencies: Utils, Auth (+ all data modules)
+Size: ~27 KB (largest module)
 
-**Three-Tier Architecture**:
+Three-Tier Architecture:
 ```
 ┌─────────────────────┐
 │  In-Memory Cache    │  (instant reads/writes)
@@ -137,7 +137,7 @@ fetch('/api/data', {
 └─────────────────────┘
 ```
 
-**Stores Managed**:
+Stores Managed:
 - `transactions` - Income & expense records
 - `categories` - Custom categories + budgets
 - `settings` - User preferences
@@ -147,7 +147,7 @@ fetch('/api/data', {
 - `wishlist` - Shopping list
 - `accounts` - Bank accounts + balances
 
-**Key Functions**:
+Key Functions:
 - `initStore()` - Initialize all data layers on app load
 - `getTransactions()`, `getCategories()`, etc. - Get store data
 - `saveTransactions()`, `saveCategories()`, etc. - Save to all layers
@@ -156,7 +156,7 @@ fetch('/api/data', {
 - `exportData(format)` - Export as JSON/CSV/Excel
 - `importData(data)` - Restore from export
 
-**Data Flow**:
+Data Flow:
 ```
 User Action (Add Transaction)
     │
@@ -180,11 +180,11 @@ Store.persist() Call
 
 ### 4. `transactions.js` (Expense/Income CRUD)
 
-**Purpose**: Create, read, update, delete transactions + analytics.
-**Dependencies**: Utils, Store (via data getters)
-**Size**: ~13 KB
+Purpose: Create, read, update, delete transactions + analytics.
+Dependencies: Utils, Store (via data getters)
+Size: ~13 KB
 
-**Key Functions**:
+Key Functions:
 - `addTransaction(fields)` - Create transaction
 - `updateTransaction(id, fields)` - Edit transaction
 - `deleteTransaction(id)` - Remove transaction
@@ -195,7 +195,7 @@ Store.persist() Call
 - `getInsights(monthKey)` - Generate insight text
 - `reassignCategory(fromId, toId)` - Reassign transactions when deleting category
 
-**Transaction Object**:
+Transaction Object:
 ```javascript
 {
   id: "txn_1709892345000_a3b2",
@@ -210,7 +210,7 @@ Store.persist() Call
 }
 ```
 
-**Usage**:
+Usage:
 ```javascript
 Transactions.addTransaction({
   type: 'expense',
@@ -229,11 +229,11 @@ console.log(summary);
 
 ### 5. `categories.js` (Categories & Budgets)
 
-**Purpose**: Manage expense categories with optional monthly budgets.
-**Dependencies**: Utils, Store, Transactions
-**Size**: ~4 KB
+Purpose: Manage expense categories with optional monthly budgets.
+Dependencies: Utils, Store, Transactions
+Size: ~4 KB
 
-**Key Functions**:
+Key Functions:
 - `addCategory(fields)` - Create custom category
 - `updateCategory(id, fields)` - Edit category
 - `deleteCategory(id)` - Remove (reassigns transactions)
@@ -242,7 +242,7 @@ console.log(summary);
 - `getMonthlySpend(categoryId, monthKey)` - Spending for month
 - `getPresetColors()` - Available color options
 
-**Category Object**:
+Category Object:
 ```javascript
 {
   id: "cat_food",
@@ -253,14 +253,14 @@ console.log(summary);
 }
 ```
 
-**Built-in Default Categories** (created on first use):
+Built-in Default Categories (created on first use):
 ```javascript
 Housing, Food, Transport, Utilities, Entertainment, Healthcare,
 Insurance, Shopping, Dining, Subscriptions, Personal, Pets,
 Gifts, Education, Savings, Miscellaneous
 ```
 
-**Usage**:
+Usage:
 ```javascript
 Categories.addCategory({
   name: 'Groceries',
@@ -277,18 +277,18 @@ const percent = (spent / budget) * 100;  // Show progress bar
 
 ### 6. `recurring.js` (Recurring Transactions)
 
-**Purpose**: Template-based recurring transaction auto-generation.
-**Dependencies**: Utils, Store, Transactions
-**Size**: ~5 KB
+Purpose: Template-based recurring transaction auto-generation.
+Dependencies: Utils, Store, Transactions
+Size: ~5 KB
 
-**Key Functions**:
+Key Functions:
 - `addRecurring(fields)` - Create recurring template
 - `updateRecurring(id, fields)` - Edit template
 - `deleteRecurring(id)` - Remove template
 - `processRecurring()` - Generate transactions for current month (called on app init)
 - `getAllRecurring()` - Get all templates
 
-**Recurring Object**:
+Recurring Object:
 ```javascript
 {
   id: "rec_salary",
@@ -305,14 +305,14 @@ const percent = (spent / budget) * 100;  // Show progress bar
 }
 ```
 
-**Frequency Options**:
+Frequency Options:
 - `daily` - Every day
 - `weekly` - Same day each week
 - `bi-weekly` - Every 2 weeks
 - `monthly` - Same day each month (clamped to 1-28)
 - `yearly` - Same day each year
 
-**Auto-Generation Flow**:
+Auto-Generation Flow:
 ```
 App Init
     │
@@ -333,11 +333,11 @@ Transactions Updated, UI Refreshes
 
 ### 7. `goals.js` (Savings Goals)
 
-**Purpose**: Create and track savings goals.
-**Dependencies**: Utils, Store
-**Size**: ~4 KB
+Purpose: Create and track savings goals.
+Dependencies: Utils, Store
+Size: ~4 KB
 
-**Key Functions**:
+Key Functions:
 - `addGoal(fields)` - Create savings goal
 - `updateGoal(id, fields)` - Edit goal
 - `deleteGoal(id)` - Remove goal
@@ -345,7 +345,7 @@ Transactions Updated, UI Refreshes
 - `getGoalById(id)` - Fetch single goal
 - `getAllGoals()` - Get all (incomplete first, then completed, both sorted by name)
 
-**Goal Object**:
+Goal Object:
 ```javascript
 {
   id: "goal_vacation",
@@ -359,7 +359,7 @@ Transactions Updated, UI Refreshes
 }
 ```
 
-**Usage**:
+Usage:
 ```javascript
 Goals.addGoal({
   name: 'Vacation',
@@ -375,11 +375,11 @@ Goals.addToGoal('goal_vacation', 100);  // Add $100 to goal
 
 ### 8. `debts.js` (Loan Tracking)
 
-**Purpose**: Track money owed to and from you.
-**Dependencies**: Utils, Store
-**Size**: ~4 KB
+Purpose: Track money owed to and from you.
+Dependencies: Utils, Store
+Size: ~4 KB
 
-**Key Functions**:
+Key Functions:
 - `addDebt(fields)` - Record debt
 - `updateDebt(id, fields)` - Edit debt
 - `deleteDebt(id)` - Remove debt
@@ -388,7 +388,7 @@ Goals.addToGoal('goal_vacation', 100);  // Add $100 to goal
 - `getAllDebts()` - Get all (unsettled first, then settled)
 - `getSummary()` - Net debt position
 
-**Debt Object**:
+Debt Object:
 ```javascript
 {
   id: "debt_bob",
@@ -404,7 +404,7 @@ Goals.addToGoal('goal_vacation', 100);  // Add $100 to goal
 }
 ```
 
-**Usage**:
+Usage:
 ```javascript
 Debts.addDebt({
   personName: 'Alice',
@@ -424,11 +424,11 @@ console.log(summary);
 
 ### 9. `wishlist.js` (Shopping List)
 
-**Purpose**: Track items you want to buy with priorities and prices.
-**Dependencies**: Utils, Store
-**Size**: ~3 KB
+Purpose: Track items you want to buy with priorities and prices.
+Dependencies: Utils, Store
+Size: ~3 KB
 
-**Key Functions**:
+Key Functions:
 - `addItem(fields)` - Add item to wishlist
 - `updateItem(id, fields)` - Edit item
 - `deleteItem(id)` - Remove item
@@ -437,7 +437,7 @@ console.log(summary);
 - `getAllItems()` - Get all (unpurchased first by priority, then purchased)
 - `getTotalCost()` - Sum of unpurchased items with prices
 
-**Item Object**:
+Item Object:
 ```javascript
 {
   id: "wish_laptop",
@@ -452,7 +452,7 @@ console.log(summary);
 }
 ```
 
-**Usage**:
+Usage:
 ```javascript
 Wishlist.addItem({
   name: 'Gaming Monitor',
@@ -468,11 +468,11 @@ Wishlist.togglePurchased('wish_monitor');  // Mark as bought
 
 ### 10. `accounts.js` (Multi-Account Net Worth)
 
-**Purpose**: Track multiple financial accounts and calculate net worth.
-**Dependencies**: Utils, Store
-**Size**: ~3 KB
+Purpose: Track multiple financial accounts and calculate net worth.
+Dependencies: Utils, Store
+Size: ~3 KB
 
-**Key Functions**:
+Key Functions:
 - `addAccount(fields)` - Create account
 - `updateAccount(id, fields)` - Edit account
 - `deleteAccount(id)` - Remove account
@@ -482,7 +482,7 @@ Wishlist.togglePurchased('wish_monitor');  // Mark as bought
 - `adjustBalance(id, amount)` - Update balance
 - `transfer(fromId, toId, amount)` - Move money between accounts
 
-**Account Object**:
+Account Object:
 ```javascript
 {
   id: "acct_checking",
@@ -496,14 +496,14 @@ Wishlist.togglePurchased('wish_monitor');  // Mark as bought
 }
 ```
 
-**Net Worth Calculation**:
+Net Worth Calculation:
 ```
 Assets = Checking + Savings + Cash + Investment + Other
 Liabilities = Credit Account Balances
 Net Worth = Assets - Liabilities
 ```
 
-**Usage**:
+Usage:
 ```javascript
 Accounts.addAccount({
   name: 'Checking',
@@ -522,17 +522,17 @@ Accounts.transfer('acct_checking', 'acct_savings', 500);  // Move $500
 
 ### 11. `dashboard.js` (Dashboard Rendering)
 
-**Purpose**: Compute dashboard metrics and manage dashboard rendering.
-**Dependencies**: Utils, Transactions
-**Size**: ~6 KB
+Purpose: Compute dashboard metrics and manage dashboard rendering.
+Dependencies: Utils, Transactions
+Size: ~6 KB
 
-**Key Functions**:
+Key Functions:
 - `computeDashboardData(monthKey)` - Aggregate all stats for a month
 - `renderDashboardCards(monthKey)` - Display summary cards (income, expenses, net, budget)
 - `renderBudgetWarnings()` - Show alerts for categories at 80%+ budget
 - `renderInsights()` - Display AI-generated insights
 
-**Dashboard Data**:
+Dashboard Data:
 ```javascript
 {
   monthKey: "2026-03",
@@ -551,7 +551,7 @@ Accounts.transfer('acct_checking', 'acct_savings', 500);  // Move $500
 }
 ```
 
-**Usage**:
+Usage:
 ```javascript
 const data = Dashboard.computeDashboardData('2026-03');
 Dashboard.renderDashboardCards('2026-03');  // Show summary cards
@@ -562,27 +562,27 @@ Dashboard.renderInsights();                 // Show spending tips
 
 ### 12. `charts.js` (Chart.js Wrapper)
 
-**Purpose**: Create and update interactive charts.
-**Dependencies**: Utils, Transactions (+ Chart.js CDN)
-**Size**: ~15 KB
+Purpose: Create and update interactive charts.
+Dependencies: Utils, Transactions (+ Chart.js CDN)
+Size: ~15 KB
 
-**Charts Managed**:
-1. **Doughnut**: Category spending breakdown
-2. **Bar**: Budget vs actual by category
-3. **Line**: 6-month spending trend
+Charts Managed:
+1. Doughnut: Category spending breakdown
+2. Bar: Budget vs actual by category
+3. Line: 6-month spending trend
 
-**Key Functions**:
+Key Functions:
 - `initCharts()` - Create Chart instances on page load
 - `updateAllCharts(monthKey)` - Refresh all chart data
 - `getChartData(monthKey)` - Compute data for charts
 
-**Chart Features**:
+Chart Features:
 - Respects dark mode (reads CSS variables)
 - Custom plugin shows "No data" on empty chart
 - Responsive sizing
 - Click-to-filter capability (future enhancement)
 
-**Usage**:
+Usage:
 ```javascript
 Charts.initCharts();  // Call once on page load
 Charts.updateAllCharts('2026-03');  // Call when month changes
@@ -592,20 +592,20 @@ Charts.updateAllCharts('2026-03');  // Call when month changes
 
 ### 13. `ui.js` (DOM & Modals)
 
-**Purpose**: All DOM manipulation, forms, modals, toasts, navigation.
-**Dependencies**: Utils, Auth, All data modules (large cross-cutting module)
-**Size**: ~63 KB (largest by lines of code)
+Purpose: All DOM manipulation, forms, modals, toasts, navigation.
+Dependencies: Utils, Auth, All data modules (large cross-cutting module)
+Size: ~63 KB (largest by lines of code)
 
-**Subsystems**:
-- **Navigation**: Hash-based routing between sections
-- **Forms**: Input binding, validation feedback
-- **Modals**: Dialog open/close/submit
-- **Toasts**: Success/error notifications
-- **Lists**: Render transaction lists, category lists, etc.
-- **Settings**: User menu, dark mode toggle, logout
-- **Charts**: Integration with Charts module
+Subsystems:
+- Navigation: Hash-based routing between sections
+- Forms: Input binding, validation feedback
+- Modals: Dialog open/close/submit
+- Toasts: Success/error notifications
+- Lists: Render transaction lists, category lists, etc.
+- Settings: User menu, dark mode toggle, logout
+- Charts: Integration with Charts module
 
-**Key Functions**:
+Key Functions:
 - `init()` - Wire up event handlers
 - `showModal(modalId)` - Open dialog
 - `closeModal(modalId)` - Close dialog
@@ -617,7 +617,7 @@ Charts.updateAllCharts('2026-03');  // Call when month changes
 - `renderCategoryList()` - Display categories
 - etc. (many more rendering functions)
 
-**Usage**:
+Usage:
 ```javascript
 UI.showToast('Transaction saved!', 'success');
 UI.showModal('transactionModal');
@@ -628,11 +628,11 @@ UI.showSection('dashboard');
 
 ### 14. `app.js` (Orchestrator & Entry Point)
 
-**Purpose**: Initialize all modules, wire event handlers, manage app lifecycle.
-**Dependencies**: All other modules
-**Size**: ~43 KB
+Purpose: Initialize all modules, wire event handlers, manage app lifecycle.
+Dependencies: All other modules
+Size: ~43 KB
 
-**Initialization Sequence** (on `DOMContentLoaded`):
+Initialization Sequence (on `DOMContentLoaded`):
 ```
 1. Store.initStore()           - Load data from localStorage → IndexedDB → server
 2. Store.seedDefaultData()     - Create default categories if first use
@@ -644,7 +644,7 @@ UI.showSection('dashboard');
 8. Service Worker register     - Enable offline support
 ```
 
-**Key Functions**:
+Key Functions:
 - `init()` - Run initialization sequence
 - `setupXxxHandlers()` - Wire event listeners for each section
   - `setupTransactionHandlers()`
@@ -654,7 +654,7 @@ UI.showSection('dashboard');
 - `handleHashChange()` - Navigate between sections on URL hash change
 - `setupUserMenu()` - Display user avatar, email, logout button
 
-**Hash-Based Routing**:
+Hash-Based Routing:
 ```
 #dashboard       → Dashboard view
 #transactions    → Transactions CRUD
@@ -817,7 +817,7 @@ Test the full flow:
 
 ## Dependency Import Order
 
-**Critical**: Modules must load in dependency order!
+Critical: Modules must load in dependency order!
 
 ```html
 <!-- Order matters! -->
@@ -843,25 +843,25 @@ If you change the order, the app will break with "undefined" errors!
 
 ## Performance Tips
 
-1. **Minimize DOM Queries**: Cache selectors
+1. Minimize DOM Queries: Cache selectors
    ```javascript
    const form = document.getElementById('form');  // Cache this
    form.addEventListener('submit', handleSubmit);
    ```
 
-2. **Debounce Search**: Don't filter on every keystroke
+2. Debounce Search: Don't filter on every keystroke
    ```javascript
    const debouncedSearch = Utils.debounce(search, 300);
    input.addEventListener('input', debouncedSearch);
    ```
 
-3. **Batch Updates**: Update UI once, not for each item
+3. Batch Updates: Update UI once, not for each item
    ```javascript
    const html = items.map(item => renderItem(item)).join('');
    container.innerHTML = html;  // One DOM update
    ```
 
-4. **Lazy Render**: Only render visible items
+4. Lazy Render: Only render visible items
    ```javascript
    // Render first 50, load more on scroll
    ```
