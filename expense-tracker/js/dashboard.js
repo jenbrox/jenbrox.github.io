@@ -121,7 +121,7 @@ const Dashboard = (() => {
   // dashboard heading and on each chart section title.
   function renderMonthLabels(monthKey) {
     const label = Utils.monthLabel(monthKey);
-    ['dash-month-label', 'pie-month-label', 'bar-month-label'].forEach(id => {
+    ['dash-month-label', 'dash-month-label-mobile', 'pie-month-label', 'bar-month-label'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.textContent = label;
     });

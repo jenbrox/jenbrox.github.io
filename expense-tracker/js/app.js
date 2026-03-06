@@ -280,6 +280,7 @@ function setupNavigation() {
 
 function renderDashboardView() {
   updateMonthLabel('dash-month-label', AppState.dashboardMonth);
+  updateMonthLabel('dash-month-label-mobile', AppState.dashboardMonth);
   Dashboard.renderDashboard(AppState.dashboardMonth);
 }
 
@@ -326,6 +327,14 @@ function setupMonthNavHandlers() {
     renderDashboardView();
   });
   document.getElementById('dash-next-month')?.addEventListener('click', () => {
+    AppState.dashboardMonth = Utils.offsetMonth(AppState.dashboardMonth, 1);
+    renderDashboardView();
+  });
+  document.getElementById('dash-prev-month-mobile')?.addEventListener('click', () => {
+    AppState.dashboardMonth = Utils.offsetMonth(AppState.dashboardMonth, -1);
+    renderDashboardView();
+  });
+  document.getElementById('dash-next-month-mobile')?.addEventListener('click', () => {
     AppState.dashboardMonth = Utils.offsetMonth(AppState.dashboardMonth, 1);
     renderDashboardView();
   });
@@ -1284,12 +1293,12 @@ function updateMonthLabel(elId, monthKey) {
 }
 
 function setupPrintHandler() {
-  document.getElementById('btn-print-report')?.addEventListener('click', () => {
-    // Ensure we're on the dashboard
+  const printAction = () => {
     navigateTo('dashboard');
-    // Short delay to ensure the dashboard is rendered
     setTimeout(() => window.print(), 200);
-  });
+  };
+  document.getElementById('btn-print-report')?.addEventListener('click', printAction);
+  document.getElementById('btn-print-report-mobile')?.addEventListener('click', printAction);
 }
 
 function refreshAllViews() {

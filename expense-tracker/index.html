@@ -59,6 +59,21 @@
         <a href="#accounts" class="nav-link" data-nav="accounts">Accounts</a>
         <a href="#settings" class="nav-link" data-nav="settings">Settings</a>
       </nav>
+      <button class="btn btn-secondary btn-sm header-print-btn" id="btn-print-report" title="Print Report">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M4 6V1h8v5M4 12H2V7h12v5h-2M4 9h8v5H4V9z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+        </svg>
+        Print Report
+      </button>
+      <div class="month-nav header-month-nav" role="group" aria-label="Month navigation">
+        <button class="btn btn-ghost btn-icon" id="dash-prev-month" aria-label="Previous month">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="month-label" id="dash-month-label">March 2026</span>
+        <button class="btn btn-ghost btn-icon" id="dash-next-month" aria-label="Next month">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
       <button class="btn btn-ghost btn-icon" id="btn-dark-mode" aria-label="Toggle dark mode" title="Toggle dark mode">
         <svg id="dark-mode-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
           <path d="M9 1.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15zM9 13.5a4.5 4.5 0 0 1 0-9v9z" fill="currentColor"/>
@@ -187,20 +202,20 @@
 
     <!-- DASHBOARD -->
     <section id="dashboard" class="section" aria-label="Dashboard">
-      <div class="section-header">
-        <h1 class="section-title">Dashboard</h1>
-        <button class="btn btn-secondary btn-sm" id="btn-print-report" title="Print Report">
+
+      <div class="dash-mobile-bar">
+        <button class="btn btn-secondary btn-sm" id="btn-print-report-mobile" title="Print Report">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path d="M4 6V1h8v5M4 12H2V7h12v5h-2M4 9h8v5H4V9z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
           </svg>
           Print Report
         </button>
         <div class="month-nav" role="group" aria-label="Month navigation">
-          <button class="btn btn-ghost btn-icon" id="dash-prev-month" aria-label="Previous month">
+          <button class="btn btn-ghost btn-icon" id="dash-prev-month-mobile" aria-label="Previous month">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <span class="month-label" id="dash-month-label">March 2026</span>
-          <button class="btn btn-ghost btn-icon" id="dash-next-month" aria-label="Next month">
+          <span class="month-label" id="dash-month-label-mobile">March 2026</span>
+          <button class="btn btn-ghost btn-icon" id="dash-next-month-mobile" aria-label="Next month">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </div>
