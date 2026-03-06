@@ -2239,11 +2239,12 @@ kbd {
   position: fixed;
   inset: 0;
   z-index: 10000;
-  background: rgba(15, 23, 42, 0.35);
+  background: rgba(15, 23, 42, 0.25);
   display: none;
   align-items: center;
   justify-content: center;
   padding: var(--space-xl);
+  pointer-events: none;
 }
 
 .onboarding-overlay.visible {
@@ -2251,6 +2252,7 @@ kbd {
 }
 
 .onboarding-card {
+  pointer-events: auto;
   background: var(--color-surface);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);

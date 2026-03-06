@@ -1781,13 +1781,13 @@ function setupOnboarding() {
   if (localStorage.getItem(ONBOARDING_KEY)) return;
 
   const steps = [
-    { title: 'Welcome to Jentrak!', text: 'Your personal expense tracker. Let\'s take a quick tour of the main features.' },
-    { title: 'Dashboard', text: 'See your monthly income, expenses, budget status, and spending insights at a glance.' },
-    { title: 'Transactions', text: 'Add income and expenses, search, filter, and manage your financial records.' },
-    { title: 'Categories & Budgets', text: 'Organize spending into categories and set budget limits to stay on track.' },
-    { title: 'Goals & Debts', text: 'Track savings goals and manage debt payoff strategies.' },
-    { title: 'Quick Add', text: 'Use the lightning bolt button in the header to instantly add transactions from saved templates.' },
-    { title: 'You\'re All Set!', text: 'Start by adding your first transaction. Press "N" anytime to quickly add one.' },
+    { title: 'Welcome to Jentrak!', text: 'Your personal expense tracker. Let\'s take a quick tour of the main features.', nav: 'dashboard' },
+    { title: 'Dashboard', text: 'See your monthly income, expenses, budget status, and spending insights at a glance.', nav: 'dashboard' },
+    { title: 'Transactions', text: 'Add income and expenses, search, filter, and manage your financial records.', nav: 'transactions' },
+    { title: 'Categories & Budgets', text: 'Organize spending into categories and set budget limits to stay on track.', nav: 'categories' },
+    { title: 'Goals & Debts', text: 'Track savings goals and manage debt payoff strategies.', nav: 'goals' },
+    { title: 'Quick Add', text: 'Use the lightning bolt button in the header to instantly add transactions from saved templates.', nav: 'dashboard' },
+    { title: 'You\'re All Set!', text: 'Start by adding your first transaction. Press "N" anytime to quickly add one.', nav: 'dashboard' },
   ];
 
   let currentStep = 0;
@@ -1806,6 +1806,8 @@ function setupOnboarding() {
       `<span class="onboarding-dot${i === currentStep ? ' onboarding-dot--active' : ''}"></span>`
     ).join('');
     nextBtn.textContent = currentStep === steps.length - 1 ? 'Get Started' : 'Next';
+    // Navigate to the relevant section so the user sees it behind the overlay
+    if (step.nav) navigateTo(step.nav);
   }
 
   function finish() {
