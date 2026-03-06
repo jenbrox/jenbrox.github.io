@@ -43,6 +43,7 @@ const path = require('path');
 const helmet = require('helmet');
 const cors = require('cors');
 const crypto = require('crypto');
+const http = require('http');
 const https = require('https');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -188,15 +189,19 @@ function trackEvent(event, req, userId, meta) {
 }
 
 // Look up country from IP using free API (non-blocking, best-effort)
+// Uses ip-api.com (HTTP, free tier) as primary, ipapi.co as fallback
 function lookupGeo(ip, userId) {
   if (!ip || ip === '127.0.0.1' || ip === '::1') return;
   const cleanIp = ip.replace('::ffff:', '');
-  httpsGetJson(`https://ipapi.co/${encodeURIComponent(cleanIp)}/json/`)
+  httpsGetJson(`http://ip-api.com/json/${encodeURIComponent(cleanIp)}?fields=status,country`)
     .then(data => {
-      if (data && data.country_name) {
-        stmts.updateUserGeo.run(cleanIp, data.country_name, userId);
+      if (data && data.status === 'success' && data.country) {
+        stmts.updateUserGeo.run(cleanIp, data.country, userId);
       } else {
-        stmts.updateUserGeo.run(cleanIp, null, userId);
+        // Fallback to ipapi.co
+        return httpsGetJson(`https://ipapi.co/${encodeURIComponent(cleanIp)}/json/`)
+          .then(d => stmts.updateUserGeo.run(cleanIp, d && d.country_name || null, userId))
+          .catch(() => stmts.updateUserGeo.run(cleanIp, null, userId));
       }
     })
     .catch(() => {
@@ -278,7 +283,8 @@ function findOrCreateSocialUser(provider, providerId, email, name, avatarUrl) {
 // ── Helper: fetch JSON over HTTPS ──
 function httpsGetJson(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    const mod = url.startsWith('https') ? https : http;
+    mod.get(url, { headers: { 'User-Agent': 'Jentrak/1.0' } }, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
@@ -973,6 +979,22 @@ app.get('/api/admin/growth', adminAuth, (req, res) => {
   } catch (err) {
     console.error('[Admin] Growth error:', err.message);
     res.status(500).json({ error: 'Failed to fetch growth data' });
+  }
+});
+
+// Retry geo lookups for users missing country data
+app.post('/api/admin/refresh-geo', adminAuth, (req, res) => {
+  try {
+    const users = db.prepare('SELECT id, signup_ip FROM users WHERE country IS NULL AND signup_ip IS NOT NULL').all();
+    let queued = 0;
+    for (const u of users) {
+      lookupGeo(u.signup_ip, u.id);
+      queued++;
+    }
+    res.json({ queued, message: `Queued geo lookups for ${queued} user(s)` });
+  } catch (err) {
+    console.error('[Admin] Refresh geo error:', err.message);
+    res.status(500).json({ error: 'Failed to refresh geo data' });
   }
 });
 

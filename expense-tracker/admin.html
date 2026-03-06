@@ -278,6 +278,7 @@
       <div class="search-bar">
         <input type="text" id="user-search" placeholder="Search by name, email, or country..." oninput="filterUsers()">
         <div class="export-btns">
+          <a class="btn-sm" href="#" onclick="refreshGeo(event)">Refresh Countries</a>
           <a class="btn-sm" id="export-users-btn" href="#" onclick="exportUsers(event)">Export CSV</a>
         </div>
       </div>
@@ -529,6 +530,16 @@ function filterUsers() {
   const q = document.getElementById('user-search').value.toLowerCase();
   if (!q) { renderUsers(allUsers); return; }
   renderUsers(allUsers.filter(u => (u.name + u.email + (u.country || '')).toLowerCase().includes(q)));
+}
+
+async function refreshGeo(e) {
+  e.preventDefault();
+  try {
+    const result = await apiFetch('/api/admin/refresh-geo', { method: 'POST' });
+    alert(result.message || 'Geo refresh queued');
+    // Reload users after a short delay to allow geo lookups to complete
+    setTimeout(loadUsers, 2000);
+  } catch (err) { alert('Failed to refresh: ' + err.message); }
 }
 
 // ── Events ──
