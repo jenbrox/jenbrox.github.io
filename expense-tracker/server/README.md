@@ -4,7 +4,7 @@ Node.js + Express.js + SQLite backend for the Jentrak expense tracker PWA.
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 ```bash
@@ -31,7 +31,7 @@ npm start
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ### Tech Stack
 - **Runtime**: Node.js 14+
@@ -51,7 +51,7 @@ npm start
 
 ---
 
-## 🗄️ Database Schema
+## Database Schema
 
 ### `users` Table
 Stores user account information.
@@ -116,7 +116,7 @@ CREATE TABLE analytics_events (
 
 ---
 
-## 🔐 Authentication
+## Authentication
 
 ### JWT Token Flow
 
@@ -186,7 +186,7 @@ CREATE TABLE analytics_events (
 
 ---
 
-## 📡 API Endpoints
+## API Endpoints
 
 ### Auth Routes (No Auth Required)
 
@@ -685,7 +685,7 @@ Export all events to CSV.
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Database locked error
 - SQLite WAL mode is enabled (good for concurrency)
@@ -710,7 +710,7 @@ Export all events to CSV.
 
 ---
 
-## 🚀 Deployment
+## Deployment
 
 ### Using PM2 (Process Manager)
 ```bash
@@ -762,7 +762,7 @@ sudo systemctl start jentrak
 
 ---
 
-## 📝 License
+## License
 
 Open source — use, modify, and share!
 

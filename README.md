@@ -6,7 +6,7 @@ This repository hosts Jennifer Broxson's personal portfolio and a full-featured 
 
 ---
 
-## 📋 Contents
+## Contents
 
 This repository contains two main projects:
 
@@ -27,19 +27,26 @@ A minimal, elegant landing page with social links and CV.
 ### 2. Jentrak Expense Tracker (`expense-tracker/`)
 A full-featured, full-stack PWA for managing personal finances with multi-user support, authentication, and cloud sync.
 
-**Key Features:**
-- 💰 Transaction tracking (income & expenses)
-- 📊 Visual analytics (charts & spending summaries)
-- 💳 Multi-account net worth tracking
-- 🎯 Savings goals with progress tracking
-- 💸 Debt tracking (loans given & taken)
-- 🛒 Shopping wishlist with priorities
-- 📅 Recurring transaction automation
-- 🔐 User authentication (email, Google, Facebook, GitHub OAuth)
-- ☁️ Cloud data sync & backup
-- 📱 Progressive Web App (offline support, installable)
-- 🌓 Dark mode support
-- 📈 Per-category budget tracking with alerts
+## Key Features
+
+**Transaction Management**
+- Transaction tracking (income & expenses)
+- Visual analytics (charts & spending summaries)
+- Multi-account net worth tracking
+- Per-category budget tracking with alerts
+
+**Savings & Planning**
+- Savings goals with progress tracking
+- Debt tracking (loans given & taken)
+- Shopping wishlist with priorities
+- Recurring transaction automation
+
+**Technical Features**
+- User authentication (email, Google, Facebook, GitHub OAuth)
+- Cloud data sync & backup
+- Progressive Web App (offline support, installable)
+- Dark mode support
+- Fully responsive design
 
 **Tech Stack:**
 - **Frontend**: Vanilla JavaScript (no framework), Chart.js, IndexedDB
@@ -51,7 +58,7 @@ A full-featured, full-stack PWA for managing personal finances with multi-user s
 
 ---
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 ### Frontend Structure (`expense-tracker/`)
 ```
@@ -101,7 +108,7 @@ expense-tracker/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Frontend Only (Development)
 No build step required! The frontend is vanilla JavaScript.
@@ -140,7 +147,7 @@ ADMIN_PASSWORD=admin_password
 
 ---
 
-## 📖 Documentation
+## Documentation
 
 ### For Developers
 
@@ -156,7 +163,7 @@ Each JavaScript file includes JSDoc comments explaining:
 
 ---
 
-## 🔐 Security & Authentication
+## Security & Authentication
 
 **Supported Auth Methods:**
 1. **Email/Password**: Local registration with bcryptjs hashing
@@ -175,7 +182,7 @@ Each JavaScript file includes JSDoc comments explaining:
 
 ---
 
-## 🧪 Testing
+## Testing
 
 Currently, the app doesn't have automated tests. Recommended testing approaches:
 
@@ -185,7 +192,7 @@ Currently, the app doesn't have automated tests. Recommended testing approaches:
 
 ---
 
-## 📱 Browser Support
+## Browser Support
 
 **Modern Browsers:**
 - Chrome/Edge 90+
@@ -193,13 +200,13 @@ Currently, the app doesn't have automated tests. Recommended testing approaches:
 - Safari 14+
 
 **PWA Features:**
-- Service Worker (offline support) ✅
-- App manifest (install prompt) ✅
+- Service Worker (offline support) ✓
+- App manifest (install prompt) ✓
 - HTTPS required for production
 
 ---
 
-## 🎯 Key Modules Overview
+## Key Modules Overview
 
 | Module | Responsibility |
 |--------|---|
@@ -222,7 +229,7 @@ For detailed info on each module, see [`expense-tracker/js/README.md`](expense-t
 
 ---
 
-## 🚀 Deployment
+## Deployment
 
 **Frontend (GitHub Pages):**
 - Automatically deployed from this repo
@@ -235,13 +242,13 @@ For detailed info on each module, see [`expense-tracker/js/README.md`](expense-t
 
 ---
 
-## 📝 License
+## License
 
 This project is open source. Feel free to use, modify, and share!
 
 ---
 
-## 📧 Contact
+## Contact
 
 - **GitHub**: [@jenbrox](https://github.com/jenbrox)
 - **LinkedIn**: [Jennifer Broxson](https://www.linkedin.com/in/jenniferbroxson)

@@ -4,13 +4,13 @@ Comprehensive guide to the 14 JavaScript modules that power Jentrak's frontend.
 
 ---
 
-## 🎯 Overview
+## Overview
 
 All modules use the **Revealing Module Pattern** (IIFE + return public API). This provides:
-- ✅ Encapsulation (private functions not exposed)
-- ✅ Clean public API
-- ✅ No external dependencies (except Chart.js CDN)
-- ✅ Minimal code size
+- Encapsulation (private functions not exposed)
+- Clean public API
+- No external dependencies (except Chart.js CDN)
+- Minimal code size
 
 **Global Scope:** Each module is a global const object:
 ```javascript
@@ -21,7 +21,7 @@ const Store = (() => { /* ... */ })();  // Available as window.Store
 
 ---
 
-## 📊 Module Dependency Graph
+## Module Dependency Graph
 
 ```
 ┌─ Utils (pure utilities, no dependencies)
@@ -47,7 +47,7 @@ App (orchestrates everything)
 
 ---
 
-## 📚 Module Details
+## Module Details
 
 ### 1. `utils.js` (Pure Utilities)
 
@@ -669,7 +669,7 @@ UI.showSection('dashboard');
 
 ---
 
-## 🔄 Data Flow Example: Adding a Transaction
+## Data Flow Example: Adding a Transaction
 
 Here's how data flows through the system when a user adds a transaction:
 
@@ -709,7 +709,7 @@ UI.closeModal()                     (DOM: hide form)
 
 ---
 
-## 🏗️ Adding a New Feature: Step-by-Step
+## Adding a New Feature: Step-by-Step
 
 Example: Adding a "Tags" feature for transactions.
 
@@ -777,7 +777,7 @@ function setupTagHandlers() {
 
 ---
 
-## 🧪 Testing Modules
+## Testing Modules
 
 ### Unit Testing Example
 ```javascript
@@ -815,7 +815,7 @@ Test the full flow:
 
 ---
 
-## 📦 Dependency Import Order
+## Dependency Import Order
 
 **Critical**: Modules must load in dependency order!
 
@@ -841,7 +841,7 @@ If you change the order, the app will break with "undefined" errors!
 
 ---
 
-## 🚀 Performance Tips
+## Performance Tips
 
 1. **Minimize DOM Queries**: Cache selectors
    ```javascript
@@ -868,7 +868,7 @@ If you change the order, the app will break with "undefined" errors!
 
 ---
 
-## 📝 Code Style
+## Code Style
 
 All modules follow these conventions:
 - JSDoc comments for public functions
@@ -880,7 +880,7 @@ All modules follow these conventions:
 
 ---
 
-## 📚 Further Reading
+## Further Reading
 
 - [Parent README](../README.md) - Overall project overview
 - [Backend API Reference](../server/README.md) - Server endpoints

@@ -6,47 +6,47 @@ A full-featured expense tracker PWA with user authentication, cloud sync, real-t
 
 ---
 
-## ✨ Features
+## Features
 
 ### Core Expense Tracking
-- **Dashboard**: Monthly summary (income, expenses, net, remaining budget)
-- **Transactions**: Add/edit/delete income & expenses with tags
-- **Categories**: Custom categories with optional monthly budgets and progress bars
-- **Recurring**: Auto-generate monthly bills, subscriptions, salary
-- **Analytics**: Interactive charts (spending by category, budget progress, 6-month trends)
+- Dashboard: Monthly summary (income, expenses, net, remaining budget)
+- Transactions: Add/edit/delete income & expenses with tags
+- Categories: Custom categories with optional monthly budgets and progress bars
+- Recurring: Auto-generate monthly bills, subscriptions, salary
+- Analytics: Interactive charts (spending by category, budget progress, 6-month trends)
 
 ### Advanced Features
-- **💰 Multi-Account**: Track checking, savings, credit, cash, investments
-- **💳 Debts**: Track loans you've given and owe (with partial settlements)
-- **🎯 Goals**: Set savings goals and track progress
-- **🛒 Wishlist**: Shopping list with priorities, prices, and URLs
-- **📊 Insights**: AI-powered spending insights and budget warnings
+- Multi-Account: Track checking, savings, credit, cash, investments
+- Debts: Track loans you've given and owe (with partial settlements)
+- Goals: Set savings goals and track progress
+- Wishlist: Shopping list with priorities, prices, and URLs
+- Insights: AI-powered spending insights and budget warnings
 
 ### Technical
-- **🔐 Authentication**: Email/password + OAuth (Google, Facebook, GitHub)
-- **☁️ Cloud Sync**: All data backed up and synced across devices
-- **📱 Progressive Web App**: Installable app, works offline
-- **📈 Analytics**: Admin dashboard with user stats and insights
-- **🌓 Dark Mode**: Automatic + manual toggle
-- **📲 Responsive**: Mobile-first design, works on any screen size
+- Authentication: Email/password + OAuth (Google, Facebook, GitHub)
+- Cloud Sync: All data backed up and synced across devices
+- Progressive Web App: Installable app, works offline
+- Analytics: Admin dashboard with user stats and insights
+- Dark Mode: Automatic + manual toggle
+- Responsive: Mobile-first design, works on any screen size
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ### Frontend Stack
-- **Framework**: Vanilla JavaScript (no dependencies except Chart.js)
-- **Storage**: Three-tier (in-memory → IndexedDB → server)
-- **PWA**: Service Worker for offline-first caching
-- **Charts**: Chart.js for data visualization
-- **Styling**: CSS with custom properties and dark mode support
+- Framework: Vanilla JavaScript (no dependencies except Chart.js)
+- Storage: Three-tier (in-memory → IndexedDB → server)
+- PWA: Service Worker for offline-first caching
+- Charts: Chart.js for data visualization
+- Styling: CSS with custom properties and dark mode support
 
 ### Backend Stack
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Database**: SQLite with WAL mode
-- **Auth**: JWT + bcryptjs + OAuth2
-- **Security**: Helmet.js, CORS, password hashing
+- Runtime: Node.js
+- Framework: Express.js
+- Database: SQLite with WAL mode
+- Auth: JWT + bcryptjs + OAuth2
+- Security: Helmet.js, CORS, password hashing
 
 ### Three-Tier Data Persistence
 1. **In-Memory Cache** (instant, no persistence)
@@ -55,7 +55,7 @@ A full-featured expense tracker PWA with user authentication, cloud sync, real-t
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Option 1: Use the Hosted Version
 Simply visit https://www.jenniferbroxson.com/expense-tracker/ and create an account!
@@ -98,7 +98,7 @@ Server runs on `http://localhost:5175`
 
 ---
 
-## 📖 Documentation
+## Documentation
 
 ### Quick Links
 - **[Frontend Modules Guide](js/README.md)** - Architecture, data flow, module docs
@@ -120,7 +120,7 @@ Server runs on `http://localhost:5175`
 
 ---
 
-## 🔐 Authentication
+## Authentication
 
 ### Supported Methods
 1. **Email/Password**: Traditional registration and login
@@ -150,11 +150,11 @@ For social login to work locally or in production:
    - Authorization callback URL: `http://localhost:5175/`, `https://www.jenniferbroxson.com/`
    - Set `GITHUB_CLIENT_ID` in `.env`
 
-> **Note**: Social login buttons only appear if corresponding env vars are set
+Note: Social login buttons only appear if corresponding env vars are set
 
 ---
 
-## 💾 Data Management
+## Data Management
 
 ### What Gets Stored
 - Transactions (income & expenses)
@@ -173,7 +173,7 @@ For social login to work locally or in production:
 
 ---
 
-## 📊 Analytics & Admin Dashboard
+## Analytics & Admin Dashboard
 
 The admin dashboard provides insights:
 - **Total Users**: Signup count and growth
@@ -188,7 +188,7 @@ The admin dashboard provides insights:
 
 ---
 
-## 🌐 Offline Support
+## Offline Support
 
 ### Service Worker Strategy
 - **Cache-First**: Static assets (JS, CSS, HTML) served from cache with network fallback
@@ -196,13 +196,13 @@ The admin dashboard provides insights:
 - **Skip Caching**: Login/signup pages and API routes never cached
 
 ### Offline Capabilities
-✅ **Works Offline:**
+Works Offline:
 - View existing data
 - Create/edit transactions (syncs when online)
 - Navigate between sections
 - Dark mode toggle
 
-❌ **Needs Internet:**
+Needs Internet:
 - Login/signup
 - Real-time data sync
 - OAuth providers
@@ -217,7 +217,7 @@ The SW caches all app shell files during installation. When offline:
 
 ---
 
-## 🎨 Customization
+## Customization
 
 ### Theming
 Edit CSS custom properties in `expense-tracker/css/main.css`:
@@ -241,7 +241,7 @@ function seedDefaultData() {
 
 ---
 
-## 📱 Installing as App
+## Installing as App
 
 ### On Mobile (iOS/Android)
 1. Open browser → visit app URL
@@ -255,7 +255,7 @@ function seedDefaultData() {
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ### Manual Testing Checklist
 - [ ] Create account with email
@@ -279,7 +279,7 @@ function seedDefaultData() {
 
 ---
 
-## 🚀 Deployment
+## Deployment
 
 ### Frontend (GitHub Pages)
 Already configured in this repo:
@@ -307,7 +307,7 @@ Deploy Node.js server to your choice of:
 
 ---
 
-## 🔒 Security Considerations
+## Security Considerations
 
 ### Production Checklist
 - [ ] Change admin password in `.env`
@@ -322,14 +322,14 @@ Deploy Node.js server to your choice of:
 
 ---
 
-## 📊 Browser Support
+## Browser Support
 
 | Browser | Min Version | PWA Support |
 |---------|-------------|-------------|
-| Chrome | 90+ | ✅ Full |
-| Firefox | 88+ | ✅ Full |
-| Safari | 14+ | ⚠️ Limited |
-| Edge | 90+ | ✅ Full |
+| Chrome | 90+ | Full |
+| Firefox | 88+ | Full |
+| Safari | 14+ | Limited |
+| Edge | 90+ | Full |
 
 **Safari PWA Notes:**
 - No service worker (uses app cache instead)
@@ -338,7 +338,7 @@ Deploy Node.js server to your choice of:
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### "App won't sync with server"
 - Check network connection
@@ -364,7 +364,7 @@ Deploy Node.js server to your choice of:
 
 ---
 
-## 📝 License & Credits
+## License & Credits
 
 - **Chart.js**: Charting library (Apache 2.0)
 - **SheetJS**: Excel export support
@@ -372,7 +372,7 @@ Deploy Node.js server to your choice of:
 
 ---
 
-## 📧 Support
+## Support
 
 Found a bug or have a suggestion? Contact Jennifer:
 - **Email**: jenbrox@gmail.com
