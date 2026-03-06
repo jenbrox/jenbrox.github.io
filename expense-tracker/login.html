@@ -19,7 +19,6 @@
       --border: #e2e8f0;
       --error: #ef4444;
       --error-bg: #fef2f2;
-      --success: #22c55e;
       --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
       --radius: 12px;
       --shadow: 0 4px 24px rgba(0,0,0,.08);
@@ -36,10 +35,7 @@
       padding: 1rem;
     }
 
-    .auth-container {
-      width: 100%;
-      max-width: 420px;
-    }
+    .auth-container { width: 100%; max-width: 420px; }
 
     .auth-card {
       background: var(--surface);
@@ -55,142 +51,78 @@
       gap: .6rem;
       margin-bottom: 2rem;
     }
-
     .auth-logo svg { flex-shrink: 0; }
+    .auth-logo span { font-size: 1.5rem; font-weight: 700; color: var(--text); }
 
-    .auth-logo span {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--text);
-    }
+    .auth-title { text-align: center; font-size: 1.25rem; font-weight: 600; margin-bottom: .5rem; }
+    .auth-subtitle { text-align: center; color: var(--text-muted); font-size: .9rem; margin-bottom: 1.75rem; }
 
-    .auth-title {
-      text-align: center;
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin-bottom: .5rem;
-    }
-
-    .auth-subtitle {
-      text-align: center;
-      color: var(--text-muted);
-      font-size: .9rem;
-      margin-bottom: 1.75rem;
-    }
-
-    .form-group {
-      margin-bottom: 1.25rem;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: .85rem;
-      font-weight: 500;
-      margin-bottom: .4rem;
-      color: var(--text);
-    }
+    .form-group { margin-bottom: 1.25rem; }
+    .form-group label { display: block; font-size: .85rem; font-weight: 500; margin-bottom: .4rem; color: var(--text); }
 
     .form-group input {
-      width: 100%;
-      padding: .7rem .9rem;
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      font-size: .95rem;
-      font-family: var(--font);
-      color: var(--text);
-      background: var(--bg);
-      transition: border-color .2s, box-shadow .2s;
-      outline: none;
+      width: 100%; padding: .7rem .9rem;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: .95rem; font-family: var(--font); color: var(--text);
+      background: var(--bg); transition: border-color .2s, box-shadow .2s; outline: none;
     }
+    .form-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(108,99,255,.15); }
 
-    .form-group input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(108,99,255,.15);
-    }
-
-    .form-group input.error {
-      border-color: var(--error);
-    }
-
-    .form-error {
-      display: none;
-      background: var(--error-bg);
-      color: var(--error);
-      padding: .6rem .9rem;
-      border-radius: 8px;
-      font-size: .85rem;
-      margin-bottom: 1rem;
-    }
-
+    .form-error { display: none; background: var(--error-bg); color: var(--error); padding: .6rem .9rem; border-radius: 8px; font-size: .85rem; margin-bottom: 1rem; }
     .form-error.visible { display: block; }
 
     .btn-primary {
-      width: 100%;
-      padding: .75rem 1rem;
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 600;
-      font-family: var(--font);
-      cursor: pointer;
-      transition: background .2s, transform .1s;
+      width: 100%; padding: .75rem 1rem; background: var(--primary); color: #fff;
+      border: none; border-radius: 8px; font-size: 1rem; font-weight: 600;
+      font-family: var(--font); cursor: pointer; transition: background .2s, transform .1s;
     }
-
     .btn-primary:hover { background: var(--primary-hover); }
     .btn-primary:active { transform: scale(.98); }
-    .btn-primary:disabled {
-      opacity: .6;
-      cursor: not-allowed;
-    }
+    .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
 
-    .auth-footer {
-      text-align: center;
-      margin-top: 1.5rem;
-      font-size: .9rem;
-      color: var(--text-muted);
-    }
-
-    .auth-footer a {
-      color: var(--primary);
-      text-decoration: none;
-      font-weight: 600;
-    }
-
+    .auth-footer { text-align: center; margin-top: 1.5rem; font-size: .9rem; color: var(--text-muted); }
+    .auth-footer a { color: var(--primary); text-decoration: none; font-weight: 600; }
     .auth-footer a:hover { text-decoration: underline; }
 
-    .password-wrapper {
-      position: relative;
-    }
-
+    .password-wrapper { position: relative; }
     .password-toggle {
-      position: absolute;
-      right: .6rem;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--text-muted);
-      padding: .25rem;
-      display: flex;
-      align-items: center;
+      position: absolute; right: .6rem; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; color: var(--text-muted);
+      padding: .25rem; display: flex; align-items: center;
     }
 
     .spinner {
-      display: inline-block;
-      width: 18px;
-      height: 18px;
-      border: 2.5px solid rgba(255,255,255,.3);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin .6s linear infinite;
-      vertical-align: middle;
-      margin-right: .4rem;
+      display: inline-block; width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,.3); border-top-color: #fff;
+      border-radius: 50%; animation: spin .6s linear infinite;
+      vertical-align: middle; margin-right: .4rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Social Login ── */
+    .divider {
+      display: flex; align-items: center; gap: .75rem;
+      margin: 1.5rem 0; color: var(--text-muted); font-size: .82rem;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
     }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .social-buttons { display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1.5rem; }
+
+    .btn-social {
+      width: 100%; padding: .65rem 1rem; border: 1.5px solid var(--border);
+      border-radius: 8px; background: var(--surface); font-size: .92rem;
+      font-family: var(--font); font-weight: 500; color: var(--text);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      gap: .6rem; transition: background .15s, border-color .15s, box-shadow .15s;
+    }
+    .btn-social:hover { background: var(--bg); border-color: #cbd5e1; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .btn-social:active { transform: scale(.98); }
+    .btn-social:disabled { opacity: .6; cursor: not-allowed; }
+    .btn-social svg { flex-shrink: 0; }
+
+    .btn-social--hidden { display: none !important; }
 
     @media (max-width: 480px) {
       .auth-card { padding: 2rem 1.25rem; }
@@ -215,6 +147,26 @@
 
     <div id="form-error" class="form-error"></div>
 
+    <!-- Social Login Buttons -->
+    <div class="social-buttons" id="social-buttons">
+      <button type="button" class="btn-social btn-social--hidden" id="btn-google">
+        <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#34A853" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#FBBC05" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Continue with Google
+      </button>
+
+      <button type="button" class="btn-social btn-social--hidden" id="btn-facebook">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        Continue with Facebook
+      </button>
+
+      <button type="button" class="btn-social btn-social--hidden" id="btn-github">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+        Continue with GitHub
+      </button>
+    </div>
+
+    <div class="divider" id="divider" style="display:none"><span>or sign in with email</span></div>
+
     <form id="login-form" novalidate>
       <div class="form-group">
         <label for="email">Email address</label>
@@ -226,7 +178,7 @@
         <div class="password-wrapper">
           <input type="password" id="password" name="password" autocomplete="current-password" required placeholder="Enter your password">
           <button type="button" class="password-toggle" aria-label="Toggle password visibility" onclick="togglePassword()">
-            <svg id="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
         </div>
       </div>
@@ -240,10 +192,15 @@
   </div>
 </div>
 
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- Facebook SDK -->
+<script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+
 <script>
-  // Redirect if already logged in
-  const token = localStorage.getItem('jentrak_token');
-  if (token) window.location.href = './index.html';
+  if (localStorage.getItem('jentrak_token')) window.location.href = './index.html';
+
+  let providers = {};
 
   function togglePassword() {
     const input = document.getElementById('password');
@@ -260,6 +217,157 @@
     document.getElementById('form-error').classList.remove('visible');
   }
 
+  function handleAuthSuccess(data) {
+    localStorage.setItem('jentrak_token', data.token);
+    localStorage.setItem('jentrak_user', JSON.stringify(data.user));
+    window.location.href = './index.html';
+  }
+
+  // ── Load enabled providers ──
+  async function loadProviders() {
+    try {
+      const res = await fetch('/api/auth/providers');
+      providers = await res.json();
+
+      let anyVisible = false;
+
+      if (providers.google && providers.google_client_id) {
+        document.getElementById('btn-google').classList.remove('btn-social--hidden');
+        anyVisible = true;
+        // Init Google
+        if (typeof google !== 'undefined' && google.accounts) {
+          initGoogle(providers.google_client_id);
+        } else {
+          window.addEventListener('load', () => {
+            if (typeof google !== 'undefined' && google.accounts) initGoogle(providers.google_client_id);
+          });
+        }
+      }
+
+      if (providers.facebook && providers.facebook_app_id) {
+        document.getElementById('btn-facebook').classList.remove('btn-social--hidden');
+        anyVisible = true;
+        initFacebook(providers.facebook_app_id);
+      }
+
+      if (providers.github && providers.github_client_id) {
+        document.getElementById('btn-github').classList.remove('btn-social--hidden');
+        anyVisible = true;
+      }
+
+      if (anyVisible) {
+        document.getElementById('divider').style.display = '';
+      }
+    } catch {}
+  }
+
+  // ── Google ──
+  function initGoogle(clientId) {
+    google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleGoogleCallback,
+    });
+  }
+
+  document.getElementById('btn-google').addEventListener('click', () => {
+    if (typeof google === 'undefined' || !google.accounts) {
+      showError('Google sign-in is loading. Please try again.');
+      return;
+    }
+    google.accounts.id.prompt((notification) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        // Fallback: use popup
+        google.accounts.oauth2.initCodeClient({
+          client_id: providers.google_client_id,
+          scope: 'email profile',
+          callback: () => {},
+        });
+        // Use the credential approach with a popup
+        google.accounts.id.prompt();
+      }
+    });
+  });
+
+  async function handleGoogleCallback(response) {
+    hideError();
+    const btn = document.getElementById('btn-google');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: response.credential }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showError(data.error || 'Google sign-in failed.'); btn.disabled = false; return; }
+      handleAuthSuccess(data);
+    } catch { showError('Network error. Please try again.'); btn.disabled = false; }
+  }
+
+  // ── Facebook ──
+  function initFacebook(appId) {
+    window.fbAsyncInit = function() {
+      FB.init({ appId: appId, cookie: true, xfbml: false, version: 'v19.0' });
+    };
+  }
+
+  document.getElementById('btn-facebook').addEventListener('click', async () => {
+    if (typeof FB === 'undefined') { showError('Facebook is loading. Please try again.'); return; }
+    hideError();
+    const btn = document.getElementById('btn-facebook');
+
+    FB.login(async (response) => {
+      if (response.status !== 'connected') { showError('Facebook login was cancelled.'); return; }
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/auth/facebook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessToken: response.authResponse.accessToken }),
+        });
+        const data = await res.json();
+        if (!res.ok) { showError(data.error || 'Facebook sign-in failed.'); btn.disabled = false; return; }
+        handleAuthSuccess(data);
+      } catch { showError('Network error. Please try again.'); btn.disabled = false; }
+    }, { scope: 'email,public_profile' });
+  });
+
+  // ── GitHub ──
+  document.getElementById('btn-github').addEventListener('click', () => {
+    if (!providers.github_client_id) return;
+    const redirectUri = window.location.origin + '/login.html';
+    const url = `https://github.com/login/oauth/authorize?client_id=${providers.github_client_id}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user,user:email`;
+    window.location.href = url;
+  });
+
+  // Handle GitHub OAuth callback
+  async function handleGitHubCallback() {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (!code) return;
+
+    // Clean URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    hideError();
+    const btn = document.getElementById('btn-github');
+    btn.classList.remove('btn-social--hidden');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner" style="border-top-color:var(--text);border-color:var(--border);"></span>Signing in with GitHub...';
+
+    try {
+      const res = await fetch('/api/auth/github', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showError(data.error || 'GitHub sign-in failed.'); btn.disabled = false; btn.textContent = 'Continue with GitHub'; return; }
+      handleAuthSuccess(data);
+    } catch { showError('Network error. Please try again.'); btn.disabled = false; btn.textContent = 'Continue with GitHub'; }
+  }
+
+  // ── Email Login ──
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     hideError();
@@ -268,10 +376,7 @@
     const password = document.getElementById('password').value;
     const btn = document.getElementById('submit-btn');
 
-    if (!email || !password) {
-      showError('Please fill in all fields.');
-      return;
-    }
+    if (!email || !password) { showError('Please fill in all fields.'); return; }
 
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Signing in...';
@@ -282,25 +387,15 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        showError(data.error || 'Login failed. Please try again.');
-        btn.disabled = false;
-        btn.textContent = 'Sign In';
-        return;
-      }
-
-      localStorage.setItem('jentrak_token', data.token);
-      localStorage.setItem('jentrak_user', JSON.stringify(data.user));
-      window.location.href = './index.html';
-    } catch (err) {
-      showError('Network error. Please check your connection.');
-      btn.disabled = false;
-      btn.textContent = 'Sign In';
-    }
+      if (!res.ok) { showError(data.error || 'Login failed.'); btn.disabled = false; btn.textContent = 'Sign In'; return; }
+      handleAuthSuccess(data);
+    } catch { showError('Network error. Please check your connection.'); btn.disabled = false; btn.textContent = 'Sign In'; }
   });
+
+  // ── Init ──
+  loadProviders();
+  handleGitHubCallback();
 </script>
 
 </body>

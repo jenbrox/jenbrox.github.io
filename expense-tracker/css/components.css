@@ -1792,6 +1792,13 @@ textarea.input {
    USER DROPDOWN
 ═══════════════════════════════════════════════ */
 
+.user-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .user-dropdown {
   position: absolute;
   top: calc(100% + .5rem);

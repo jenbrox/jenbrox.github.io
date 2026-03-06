@@ -97,6 +97,15 @@ function setupUserMenu() {
   if (user) {
     if (nameEl) nameEl.textContent = user.name || 'User';
     if (emailEl) emailEl.textContent = user.email || '';
+
+    // Show avatar if available
+    const avatarImg = document.getElementById('user-avatar');
+    const avatarFallback = document.getElementById('user-avatar-fallback');
+    if (user.avatar_url && avatarImg) {
+      avatarImg.src = user.avatar_url;
+      avatarImg.hidden = false;
+      if (avatarFallback) avatarFallback.style.display = 'none';
+    }
   }
 
   // Toggle dropdown
