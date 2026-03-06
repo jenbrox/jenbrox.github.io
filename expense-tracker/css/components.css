@@ -519,19 +519,6 @@
 }
 
 /* ── Calendar Modal ── */
-.modal--calendar {
-  max-width: 580px;
-}
-
-.modal--calendar .modal-header {
-  gap: var(--space-sm);
-}
-
-.modal--calendar .modal-title {
-  flex: 1;
-  text-align: center;
-  min-width: 160px;
-}
 
 .calendar-grid {
   display: grid;
@@ -718,20 +705,6 @@
 }
 
 @media (max-width: 768px) {
-  .modal--calendar {
-    max-width: 100%;
-    width: 100%;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    margin: auto 0 0 0;
-    max-height: 90vh;
-  }
-
-  .modal--calendar .modal-inner {
-    padding: var(--space-lg) var(--space-md);
-    max-height: 85vh;
-    overflow-y: auto;
-  }
-
   .calendar-cell {
     min-height: 48px;
   }

@@ -203,6 +203,32 @@
     </div>
   </aside>
 
+  <!-- CALENDAR SIDE PANEL -->
+  <aside class="side-panel side-panel--right" id="calendar-panel" aria-label="Calendar">
+    <div class="side-panel__inner">
+      <div class="side-panel__header">
+        <button class="btn btn-ghost btn-icon" id="cal-prev-month" aria-label="Previous month">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 class="side-panel__title" id="calendar-modal-title" style="flex:1;text-align:center;">March 2026</h2>
+        <button class="btn btn-ghost btn-icon" id="cal-next-month" aria-label="Next month">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="btn btn-ghost btn-icon" id="btn-close-calendar" aria-label="Close calendar">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="calendar-grid" id="calendar-grid"></div>
+      <div class="calendar-day-detail" id="calendar-day-detail" hidden>
+        <div class="calendar-day-detail__header">
+          <h3 id="calendar-detail-title"></h3>
+          <div class="calendar-day-detail__summary" id="calendar-detail-summary"></div>
+        </div>
+        <ul class="calendar-day-detail__list" id="calendar-detail-list"></ul>
+      </div>
+    </div>
+  </aside>
+
   <!-- ===== MAIN CONTENT ===== -->
   <main class="app-main">
 
@@ -1128,31 +1154,6 @@
     </div>
   </dialog>
 
-  <!-- Calendar Modal -->
-  <dialog id="calendar-modal" class="modal modal--calendar" aria-labelledby="calendar-modal-title">
-    <div class="modal-inner">
-      <div class="modal-header">
-        <button class="btn btn-ghost btn-icon" id="cal-prev-month" aria-label="Previous month">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <h2 class="modal-title" id="calendar-modal-title">March 2026</h2>
-        <button class="btn btn-ghost btn-icon" id="cal-next-month" aria-label="Next month">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <button class="btn btn-ghost btn-icon modal-close" data-close-modal="calendar-modal" aria-label="Close">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        </button>
-      </div>
-      <div class="calendar-grid" id="calendar-grid"></div>
-      <div class="calendar-day-detail" id="calendar-day-detail" hidden>
-        <div class="calendar-day-detail__header">
-          <h3 id="calendar-detail-title"></h3>
-          <div class="calendar-day-detail__summary" id="calendar-detail-summary"></div>
-        </div>
-        <ul class="calendar-day-detail__list" id="calendar-detail-list"></ul>
-      </div>
-    </div>
-  </dialog>
 
   <!-- Quick Add Template Modal -->
   <dialog id="template-modal" class="modal" aria-labelledby="template-modal-title">

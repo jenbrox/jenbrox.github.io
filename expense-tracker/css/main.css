@@ -187,7 +187,6 @@ input, select, textarea {
   position: sticky;
   top: 0;
   z-index: 100;
-  height: var(--header-height);
   background: var(--color-surface);
   border-bottom: none;
   box-shadow: var(--shadow-md);
@@ -206,13 +205,12 @@ input, select, textarea {
 .header-inner {
   display: flex;
   align-items: center;
-  gap: var(--space-lg);
-  height: 100%;
+  gap: var(--space-md);
+  height: var(--header-height);
   max-width: 1280px;
   width: 100%;
   margin: 0 auto;
   padding: 0 var(--space-lg);
-  overflow: hidden;
 }
 
 .app-logo {
@@ -230,8 +228,9 @@ input, select, textarea {
 .app-nav {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: 2px;
   flex: 1;
+  min-width: 0;
   overflow-x: auto;
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -244,9 +243,9 @@ input, select, textarea {
 .nav-link {
   display: inline-flex;
   align-items: center;
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-md);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--color-text-muted);
   white-space: nowrap;
@@ -264,14 +263,15 @@ input, select, textarea {
   font-weight: 600;
 }
 
-/* ── Header Print & Month Nav ── */
-.header-print-btn {
+/* ── Header Action Buttons (all must stay visible, never shrink) ── */
+.header-inner > :not(.app-nav):not(.app-logo) {
   flex-shrink: 0;
-  white-space: nowrap;
 }
 
-.header-month-nav {
-  flex-shrink: 0;
+.header-print-btn {
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  padding: var(--space-xs) var(--space-sm);
 }
 
 /* Mobile-only dashboard bar (hidden on desktop) */
@@ -313,8 +313,26 @@ input, select, textarea {
   transform: translateX(0);
 }
 
+/* Right-side panel (calendar) */
+.side-panel--right {
+  left: auto;
+  right: 0;
+  border-right: none;
+  border-left: 1px solid var(--color-border);
+  transform: translateX(100%);
+  width: 420px;
+}
+
+.side-panel--right.open {
+  transform: translateX(0);
+}
+
 .app-layout.panel-open .app-main {
   margin-left: 380px;
+}
+
+.app-layout.calendar-open .app-main {
+  margin-right: 420px;
 }
 
 .side-panel__inner {
@@ -482,17 +500,29 @@ input, select, textarea {
   .settings-layout {
     grid-template-columns: 1fr;
   }
+  /* Hide text labels on header buttons to save space */
+  .header-print-btn {
+    font-size: 0;
+    padding: 6px 10px;
+  }
+  .header-print-btn svg {
+    font-size: 1rem;
+  }
+  #btn-add-transaction span {
+    display: none;
+  }
+  #btn-add-transaction {
+    padding: 6px 10px;
+  }
   /* Side panel overlays instead of pushing on tablets */
   .app-layout.panel-open .app-main {
     margin-left: 0;
   }
-  .side-panel.open + .app-main::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: rgba(15,23,42,.35);
-    backdrop-filter: blur(2px);
-    z-index: 80;
+  .app-layout.calendar-open .app-main {
+    margin-right: 0;
+  }
+  .side-panel--right {
+    width: 380px;
   }
 }
 

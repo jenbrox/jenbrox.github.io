@@ -1344,7 +1344,23 @@ let calendarMonth = null;
 function openCalendar() {
   calendarMonth = AppState.dashboardMonth;
   renderCalendar();
-  UI.openModal('calendar-modal');
+  document.getElementById('app-layout')?.classList.add('calendar-open');
+  document.getElementById('calendar-panel')?.classList.add('open');
+  setTimeout(() => {
+    if (typeof Charts !== 'undefined' && Charts.updateAllCharts) {
+      Charts.updateAllCharts(AppState.dashboardMonth);
+    }
+  }, 350);
+}
+
+function closeCalendar() {
+  document.getElementById('app-layout')?.classList.remove('calendar-open');
+  document.getElementById('calendar-panel')?.classList.remove('open');
+  setTimeout(() => {
+    if (typeof Charts !== 'undefined' && Charts.updateAllCharts) {
+      Charts.updateAllCharts(AppState.dashboardMonth);
+    }
+  }, 350);
 }
 
 function renderCalendar() {
@@ -1510,6 +1526,9 @@ function setupCalendarHandlers() {
     calendarMonth = Utils.offsetMonth(calendarMonth, 1);
     renderCalendar();
   });
+
+  // Close calendar panel
+  document.getElementById('btn-close-calendar')?.addEventListener('click', closeCalendar);
 }
 
 function setupPrintHandler() {
