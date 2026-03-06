@@ -13,7 +13,7 @@
  * Increment this when making breaking changes to cached assets
  * Old caches are automatically cleared when this changes
  */
-const CACHE_NAME = 'jentrak-v8';
+const CACHE_NAME = 'jentrak-v9';
 
 /**
  * Assets to precache during service worker installation

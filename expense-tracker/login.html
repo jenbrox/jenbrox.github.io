@@ -504,13 +504,6 @@
   // Track page view
   fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'page_view', meta: { page: 'login' } }) }).catch(() => {});
 
-  // Restore saved credentials
-  const saved = JSON.parse(localStorage.getItem('jentrak_remember') || 'null');
-  if (saved) {
-    document.getElementById('email').value = saved.email || '';
-    document.getElementById('password').value = saved.password || '';
-    document.getElementById('remember-me').checked = true;
-  }
 
   function togglePassword() {
     const input = document.getElementById('password');
@@ -543,13 +536,6 @@
     const btn = document.getElementById('submit-btn');
 
     if (!email || !password) { showError('Please fill in all fields.'); return; }
-
-    // Save or clear remembered credentials
-    if (remember) {
-      localStorage.setItem('jentrak_remember', JSON.stringify({ email, password }));
-    } else {
-      localStorage.removeItem('jentrak_remember');
-    }
 
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Signing in...';

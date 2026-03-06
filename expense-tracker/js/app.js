@@ -27,7 +27,7 @@ const AppState = {
 document.addEventListener('DOMContentLoaded', () => init());
 
 async function init() {
-  // 0. Initialize IndexedDB store (migrates from localStorage if needed)
+  // 0. Initialize store (IndexedDB cache + server database)
   await Store.initStore();
 
   // 1. Seed default data (no-op if data already exists)
@@ -1313,20 +1313,22 @@ function setupDataHandlers() {
 ═══════════════════════════════════════════════ */
 
 function setupDarkMode() {
-  const saved = localStorage.getItem('et_dark_mode');
-  if (saved === 'true') {
+  const prefs = Store.getPreferences();
+  if (prefs.darkMode) {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
 
   document.getElementById('btn-dark-mode')?.addEventListener('click', () => {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const prefs = Store.getPreferences();
     if (isDark) {
       document.documentElement.removeAttribute('data-theme');
-      localStorage.setItem('et_dark_mode', 'false');
+      prefs.darkMode = false;
     } else {
       document.documentElement.setAttribute('data-theme', 'dark');
-      localStorage.setItem('et_dark_mode', 'true');
+      prefs.darkMode = true;
     }
+    Store.savePreferences(prefs);
   });
 }
 
@@ -1776,9 +1778,8 @@ function setupPayoffCalculator() {
 ═══════════════════════════════════════════════ */
 
 function setupOnboarding() {
-  const user = (typeof Auth !== 'undefined' && Auth.getUser()) || {};
-  const ONBOARDING_KEY = (user.id || '') + '_et_onboarding_done';
-  if (localStorage.getItem(ONBOARDING_KEY)) return;
+  const prefs = Store.getPreferences();
+  if (prefs.onboardingDone) return;
 
   const steps = [
     { title: 'Welcome to Jentrak!', text: 'Your personal expense tracker. Let\'s take a quick tour of the main features.', nav: 'dashboard' },
@@ -1812,7 +1813,9 @@ function setupOnboarding() {
 
   function finish() {
     overlay.classList.remove('visible');
-    localStorage.setItem(ONBOARDING_KEY, 'true');
+    const prefs = Store.getPreferences();
+    prefs.onboardingDone = true;
+    Store.savePreferences(prefs);
   }
 
   nextBtn.addEventListener('click', () => {

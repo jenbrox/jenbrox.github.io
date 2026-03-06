@@ -1,56 +1,17 @@
 /* ===================================================
    JENTRAX — STORE
-   Single source of truth using IndexedDB with
-   localStorage fallback. No other module accesses
-   storage directly.
+   Single source of truth using IndexedDB (offline cache)
+   + server database (primary). No localStorage for data.
    =================================================== */
 
 'use strict';
 
 const Store = (() => {
 
-  const DB_VERSION = 1;
-  const STORES = ['transactions', 'categories', 'settings', 'recurring', 'goals', 'debts', 'wishlist', 'accounts', 'templates', 'notes'];
+  const DB_VERSION = 2;
+  const STORES = ['transactions', 'categories', 'settings', 'recurring', 'goals', 'debts', 'wishlist', 'accounts', 'templates', 'notes', 'preferences'];
 
-  // User-scoped storage keys — set during initStore()
-  let _userPrefix = '';
   let DB_NAME = 'ExpenseTrackerDB';
-  let LS_KEYS = _buildLSKeys('');
-
-  // One-time migration: copy un-prefixed keys to user-scoped keys, then delete old keys
-  function _migrateOldKeys() {
-    const oldKeys = _buildLSKeys('');
-    const newKeys = LS_KEYS;
-    for (const prop of Object.keys(oldKeys)) {
-      const oldKey = oldKeys[prop];
-      const newKey = newKeys[prop];
-      if (localStorage.getItem(newKey) === null && localStorage.getItem(oldKey) !== null) {
-        localStorage.setItem(newKey, localStorage.getItem(oldKey));
-      }
-      localStorage.removeItem(oldKey);
-    }
-    // Also migrate onboarding key
-    const oldOnboarding = localStorage.getItem('et_onboarding_done');
-    if (oldOnboarding !== null) {
-      localStorage.setItem(_userPrefix + 'et_onboarding_done', oldOnboarding);
-      localStorage.removeItem('et_onboarding_done');
-    }
-  }
-
-  function _buildLSKeys(prefix) {
-    return {
-      TRANSACTIONS: prefix + 'et_transactions',
-      CATEGORIES:   prefix + 'et_categories',
-      SETTINGS:     prefix + 'et_settings',
-      RECURRING:    prefix + 'et_recurring',
-      GOALS:        prefix + 'et_goals',
-      DEBTS:        prefix + 'et_debts',
-      WISHLIST:     prefix + 'et_wishlist',
-      ACCOUNTS:     prefix + 'et_accounts',
-      TEMPLATES:    prefix + 'et_templates',
-      NOTES:        prefix + 'et_notes',
-    };
-  }
 
   // Stable IDs for default categories
   const DEFAULT_CATEGORY_IDS = {
@@ -95,6 +56,7 @@ const Store = (() => {
     accounts:     [],
     templates:    [],
     notes:        [],
+    preferences:  {},
   };
 
   let _db = null;
@@ -107,7 +69,7 @@ const Store = (() => {
   function openDB() {
     return new Promise((resolve, reject) => {
       if (!window.indexedDB) {
-        console.warn('[Store] IndexedDB not available, using localStorage only.');
+        console.warn('[Store] IndexedDB not available, relying on server only.');
         reject(new Error('IndexedDB not supported'));
         return;
       }
@@ -173,14 +135,7 @@ const Store = (() => {
      PERSIST HELPER — writes cache to IndexedDB + server
   ═══════════════════════════════════════════════ */
 
-  function persist(storeName, key, data) {
-    // Also write to localStorage as fallback
-    try {
-      localStorage.setItem(key, JSON.stringify(data));
-    } catch (e) {
-      console.warn('[Store] localStorage write failed:', e);
-    }
-
+  function persist(storeName, data) {
     if (_dbReady) {
       idbPut(storeName, 'data', data).catch(e => {
         console.warn(`[Store] IndexedDB persist failed for ${storeName}:`, e);
@@ -194,46 +149,15 @@ const Store = (() => {
   }
 
   /* ═══════════════════════════════════════════════
-     LOAD FROM STORAGE — localStorage first (sync),
-     then upgrade to IndexedDB data if available
+     LOAD FROM INDEXEDDB — populate cache from local DB
   ═══════════════════════════════════════════════ */
 
-  function loadFromLocalStorage(key, defaultValue) {
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw === null) return defaultValue;
-      return JSON.parse(raw);
-    } catch (e) {
-      console.warn(`[Store] Failed to parse "${key}":`, e);
-      return defaultValue;
-    }
-  }
-
-  function loadCacheFromLocalStorage() {
-    _cache.transactions = loadFromLocalStorage(LS_KEYS.TRANSACTIONS, []);
-    _cache.categories   = loadFromLocalStorage(LS_KEYS.CATEGORIES, []);
-    _cache.settings     = loadFromLocalStorage(LS_KEYS.SETTINGS, null);
-    _cache.recurring    = loadFromLocalStorage(LS_KEYS.RECURRING, []);
-    _cache.goals        = loadFromLocalStorage(LS_KEYS.GOALS, []);
-    _cache.debts        = loadFromLocalStorage(LS_KEYS.DEBTS, []);
-    _cache.wishlist     = loadFromLocalStorage(LS_KEYS.WISHLIST, []);
-    _cache.accounts     = loadFromLocalStorage(LS_KEYS.ACCOUNTS, []);
-    _cache.templates    = loadFromLocalStorage(LS_KEYS.TEMPLATES, []);
-    _cache.notes        = loadFromLocalStorage(LS_KEYS.NOTES, []);
-  }
-
-  async function migrateToIndexedDB() {
+  async function loadCacheFromIndexedDB() {
     if (!_dbReady) return;
-
-    // For each store: if IndexedDB has data, use it; otherwise migrate from localStorage
     for (const storeName of STORES) {
       const existing = await idbGet(storeName, 'data');
       if (existing !== null) {
-        // IndexedDB has data — update cache from it
         _cache[storeName] = existing;
-      } else if (_cache[storeName] !== null && (Array.isArray(_cache[storeName]) ? _cache[storeName].length > 0 : true)) {
-        // Migrate localStorage data to IndexedDB
-        await idbPut(storeName, 'data', _cache[storeName]);
       }
     }
   }
@@ -243,41 +167,32 @@ const Store = (() => {
   ═══════════════════════════════════════════════ */
 
   async function initStore() {
-    // 0. Scope storage keys per user to prevent data leaks
+    // 0. Scope IndexedDB per user to prevent data leaks
     if (typeof Auth !== 'undefined' && Auth.isLoggedIn()) {
       const user = Auth.getUser();
       if (user && user.id) {
-        _userPrefix = user.id + '_';
         DB_NAME = 'ExpenseTrackerDB_' + user.id;
-        LS_KEYS = _buildLSKeys(_userPrefix);
       }
     }
 
-    // 0b. Migrate old un-prefixed localStorage data to user-scoped keys
-    if (_userPrefix) {
-      _migrateOldKeys();
-    }
-
-    // 1. Immediately load from localStorage (synchronous)
-    loadCacheFromLocalStorage();
-
-    // 2. Try to open IndexedDB and migrate
+    // 1. Open IndexedDB and load cached data
     try {
       await openDB();
-      await migrateToIndexedDB();
+      await loadCacheFromIndexedDB();
     } catch (e) {
-      console.warn('[Store] Running in localStorage-only mode.');
+      console.warn('[Store] IndexedDB not available.');
     }
 
-    // 3. If authenticated, load data from server (overrides local)
+    // 2. If authenticated, load data from server (overrides local cache)
     if (typeof Auth !== 'undefined' && Auth.isLoggedIn()) {
       try {
         const serverData = await Auth.loadAllData();
         if (serverData && Object.keys(serverData).length > 0) {
-          // Server has data — use it
+          // Server has data — use it and update local cache
           for (const storeName of STORES) {
             if (serverData[storeName] !== undefined) {
               _cache[storeName] = serverData[storeName];
+              if (_dbReady) idbPut(storeName, 'data', serverData[storeName]).catch(() => {});
             }
           }
         } else if (_cache.transactions.length > 0 || _cache.categories.length > 0) {
@@ -293,9 +208,32 @@ const Store = (() => {
           }
         }
       } catch (e) {
-        console.warn('[Store] Server sync failed, using local data.');
+        console.warn('[Store] Server sync failed, using IndexedDB cache.');
       }
     }
+
+    // 3. Clean up any leftover localStorage data keys from older versions
+    _cleanupLocalStorage();
+  }
+
+  function _cleanupLocalStorage() {
+    const oldKeys = [
+      'et_transactions', 'et_categories', 'et_settings', 'et_recurring',
+      'et_goals', 'et_debts', 'et_wishlist', 'et_accounts', 'et_templates',
+      'et_notes', 'et_onboarding_done', 'et_dark_mode',
+    ];
+    for (const key of oldKeys) {
+      localStorage.removeItem(key);
+    }
+    // Also clean user-prefixed keys
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.includes('_et_') && !key.startsWith('jentrak_')) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
   }
 
   /* ═══════════════════════════════════════════════
@@ -309,7 +247,7 @@ const Store = (() => {
 
   function saveTransactions(arr) {
     _cache.transactions = arr;
-    persist('transactions', LS_KEYS.TRANSACTIONS, arr);
+    persist('transactions', arr);
   }
 
   /* ── Categories ── */
@@ -319,7 +257,7 @@ const Store = (() => {
 
   function saveCategories(arr) {
     _cache.categories = arr;
-    persist('categories', LS_KEYS.CATEGORIES, arr);
+    persist('categories', arr);
   }
 
   /* ── Recurring ── */
@@ -329,7 +267,7 @@ const Store = (() => {
 
   function saveRecurring(arr) {
     _cache.recurring = arr;
-    persist('recurring', LS_KEYS.RECURRING, arr);
+    persist('recurring', arr);
   }
 
   /* ── Goals ── */
@@ -339,28 +277,32 @@ const Store = (() => {
 
   function saveGoals(arr) {
     _cache.goals = arr;
-    persist('goals', LS_KEYS.GOALS, arr);
+    persist('goals', arr);
   }
 
   /* ── Debts ── */
   function getDebts() { return _cache.debts; }
-  function saveDebts(arr) { _cache.debts = arr; persist('debts', LS_KEYS.DEBTS, arr); }
+  function saveDebts(arr) { _cache.debts = arr; persist('debts', arr); }
 
   /* ── Wishlist ── */
   function getWishlist() { return _cache.wishlist; }
-  function saveWishlist(arr) { _cache.wishlist = arr; persist('wishlist', LS_KEYS.WISHLIST, arr); }
+  function saveWishlist(arr) { _cache.wishlist = arr; persist('wishlist', arr); }
 
   /* ── Accounts ── */
   function getAccounts() { return _cache.accounts; }
-  function saveAccounts(arr) { _cache.accounts = arr; persist('accounts', LS_KEYS.ACCOUNTS, arr); }
+  function saveAccounts(arr) { _cache.accounts = arr; persist('accounts', arr); }
 
   /* ── Templates ── */
   function getTemplates() { return _cache.templates; }
-  function saveTemplates(arr) { _cache.templates = arr; persist('templates', LS_KEYS.TEMPLATES, arr); }
+  function saveTemplates(arr) { _cache.templates = arr; persist('templates', arr); }
 
   /* ── Notes ── */
   function getNotes() { return _cache.notes; }
-  function saveNotes(arr) { _cache.notes = arr; persist('notes', LS_KEYS.NOTES, arr); }
+  function saveNotes(arr) { _cache.notes = arr; persist('notes', arr); }
+
+  /* ── Preferences (dark mode, onboarding, etc.) ── */
+  function getPreferences() { return _cache.preferences || {}; }
+  function savePreferences(obj) { _cache.preferences = obj; persist('preferences', obj); }
 
   /* ── Settings ── */
   function getSettings() {
@@ -369,7 +311,7 @@ const Store = (() => {
 
   function saveSettings(obj) {
     _cache.settings = obj;
-    persist('settings', LS_KEYS.SETTINGS, obj);
+    persist('settings', obj);
   }
 
   function getDefaultSettings() {
@@ -733,13 +675,16 @@ const Store = (() => {
     _cache.accounts = [];
     _cache.templates = [];
     _cache.notes = [];
-
-    // Clear localStorage
-    Object.values(LS_KEYS).forEach(key => localStorage.removeItem(key));
+    _cache.preferences = {};
 
     // Clear IndexedDB
     if (_dbReady) {
       STORES.forEach(name => idbClear(name).catch(() => {}));
+    }
+
+    // Clear server data
+    if (typeof Auth !== 'undefined' && Auth.isLoggedIn()) {
+      fetch('/api/data', { method: 'DELETE', headers: Auth.authHeaders() }).catch(() => {});
     }
 
     seedDefaultData();
@@ -788,5 +733,7 @@ const Store = (() => {
     saveTemplates,
     getNotes,
     saveNotes,
+    getPreferences,
+    savePreferences,
   };
 })();
