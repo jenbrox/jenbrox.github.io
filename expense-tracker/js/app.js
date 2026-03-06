@@ -1776,7 +1776,8 @@ function setupPayoffCalculator() {
 ═══════════════════════════════════════════════ */
 
 function setupOnboarding() {
-  const ONBOARDING_KEY = 'et_onboarding_done';
+  const user = (typeof Auth !== 'undefined' && Auth.getUser()) || {};
+  const ONBOARDING_KEY = (user.id || '') + '_et_onboarding_done';
   if (localStorage.getItem(ONBOARDING_KEY)) return;
 
   const steps = [

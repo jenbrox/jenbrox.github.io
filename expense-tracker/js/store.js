@@ -9,22 +9,48 @@
 
 const Store = (() => {
 
-  const DB_NAME = 'ExpenseTrackerDB';
   const DB_VERSION = 1;
   const STORES = ['transactions', 'categories', 'settings', 'recurring', 'goals', 'debts', 'wishlist', 'accounts', 'templates', 'notes'];
 
-  const LS_KEYS = {
-    TRANSACTIONS: 'et_transactions',
-    CATEGORIES:   'et_categories',
-    SETTINGS:     'et_settings',
-    RECURRING:    'et_recurring',
-    GOALS:        'et_goals',
-    DEBTS:        'et_debts',
-    WISHLIST:     'et_wishlist',
-    ACCOUNTS:     'et_accounts',
-    TEMPLATES:    'et_templates',
-    NOTES:        'et_notes',
-  };
+  // User-scoped storage keys — set during initStore()
+  let _userPrefix = '';
+  let DB_NAME = 'ExpenseTrackerDB';
+  let LS_KEYS = _buildLSKeys('');
+
+  // One-time migration: copy un-prefixed keys to user-scoped keys, then delete old keys
+  function _migrateOldKeys() {
+    const oldKeys = _buildLSKeys('');
+    const newKeys = LS_KEYS;
+    for (const prop of Object.keys(oldKeys)) {
+      const oldKey = oldKeys[prop];
+      const newKey = newKeys[prop];
+      if (localStorage.getItem(newKey) === null && localStorage.getItem(oldKey) !== null) {
+        localStorage.setItem(newKey, localStorage.getItem(oldKey));
+      }
+      localStorage.removeItem(oldKey);
+    }
+    // Also migrate onboarding key
+    const oldOnboarding = localStorage.getItem('et_onboarding_done');
+    if (oldOnboarding !== null) {
+      localStorage.setItem(_userPrefix + 'et_onboarding_done', oldOnboarding);
+      localStorage.removeItem('et_onboarding_done');
+    }
+  }
+
+  function _buildLSKeys(prefix) {
+    return {
+      TRANSACTIONS: prefix + 'et_transactions',
+      CATEGORIES:   prefix + 'et_categories',
+      SETTINGS:     prefix + 'et_settings',
+      RECURRING:    prefix + 'et_recurring',
+      GOALS:        prefix + 'et_goals',
+      DEBTS:        prefix + 'et_debts',
+      WISHLIST:     prefix + 'et_wishlist',
+      ACCOUNTS:     prefix + 'et_accounts',
+      TEMPLATES:    prefix + 'et_templates',
+      NOTES:        prefix + 'et_notes',
+    };
+  }
 
   // Stable IDs for default categories
   const DEFAULT_CATEGORY_IDS = {
@@ -217,6 +243,21 @@ const Store = (() => {
   ═══════════════════════════════════════════════ */
 
   async function initStore() {
+    // 0. Scope storage keys per user to prevent data leaks
+    if (typeof Auth !== 'undefined' && Auth.isLoggedIn()) {
+      const user = Auth.getUser();
+      if (user && user.id) {
+        _userPrefix = user.id + '_';
+        DB_NAME = 'ExpenseTrackerDB_' + user.id;
+        LS_KEYS = _buildLSKeys(_userPrefix);
+      }
+    }
+
+    // 0b. Migrate old un-prefixed localStorage data to user-scoped keys
+    if (_userPrefix) {
+      _migrateOldKeys();
+    }
+
     // 1. Immediately load from localStorage (synchronous)
     loadCacheFromLocalStorage();
 
