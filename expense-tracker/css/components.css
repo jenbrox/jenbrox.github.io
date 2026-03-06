@@ -524,6 +524,7 @@
 .toast--success { background: var(--color-success); }
 .toast--error   { background: var(--color-danger); }
 .toast--warning { background: var(--color-warning); color: var(--color-text); }
+.toast--info    { background: var(--color-primary); display: flex; align-items: center; gap: var(--space-md); }
 
 .toast--out {
   animation: toastOut 0.25s ease forwards;
@@ -1055,6 +1056,399 @@
   .toast {
     min-width: 0;
     max-width: 100%;
+  }
+}
+
+/* ── Debt Cards ── */
+.debts-summary {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.debt-summary-card {
+  flex: 1;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  text-align: center;
+}
+
+.debt-summary-card__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.debt-summary-card__value {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.debts-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.debt-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.debt-card--settled {
+  opacity: 0.6;
+}
+
+.debt-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.debt-card__person {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.debt-card__amount {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.debt-card__meta {
+  display: flex;
+  gap: var(--space-lg);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-md);
+}
+
+.debt-card__desc {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.debt-card__due {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-md);
+}
+
+.debt-card__actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-md);
+}
+
+.debt-card__progress {
+  margin-bottom: var(--space-md);
+}
+
+.debt-card__progress-text {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+/* ── Debts Summary ── */
+.debts-summary {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.debts-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-lg);
+}
+
+.summary-cards {
+  display: flex;
+  gap: var(--space-md);
+}
+
+.summary-card {
+  flex: 1;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  text-align: center;
+}
+
+.summary-card__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.summary-card__value {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+/* ── Wishlist ── */
+.wishlist-total {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-lg);
+}
+
+.wishlist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-lg);
+}
+
+.wish-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+  transition: opacity 0.15s;
+}
+
+.wish-card--purchased {
+  opacity: 0.5;
+}
+
+.wish-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.wish-card__name {
+  font-weight: 600;
+  font-size: 1rem;
+  flex: 1;
+}
+
+.wish-card__price {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.wish-card__link {
+  display: inline-block;
+  font-size: 0.8125rem;
+  color: var(--color-primary);
+  text-decoration: none;
+  margin-bottom: var(--space-xs);
+}
+.wish-card__link:hover { text-decoration: underline; }
+
+.wish-card__notes {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-md);
+}
+
+.wish-card__meta {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-md);
+}
+
+.wish-card__actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
+.priority-badge {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.priority-badge--high { background: var(--color-expense-bg); color: var(--color-expense); }
+.priority-badge--medium { background: var(--color-warning-bg); color: #92400e; }
+.priority-badge--low { background: var(--color-primary-light); color: var(--color-primary); }
+
+/* ── Account Cards ── */
+.accounts-summary {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.accounts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-lg);
+}
+
+.account-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+  border-left: 4px solid var(--color-primary);
+}
+
+.account-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.account-card__color {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.account-card__name {
+  font-weight: 600;
+  font-size: 1rem;
+  flex: 1;
+}
+
+.account-card__balance {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: var(--space-xs);
+}
+
+.account-card__type {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  text-transform: capitalize;
+  margin-bottom: var(--space-md);
+}
+
+.account-card__actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-md);
+}
+
+/* ── Net Worth Cards ── */
+.net-worth-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+}
+
+.nw-card {
+  text-align: center;
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.nw-card__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.nw-card__value {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+/* ── Keyboard Shortcuts ── */
+.shortcuts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-md);
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  font-size: 0.875rem;
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 2px 8px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  box-shadow: 0 1px 0 var(--color-border);
+}
+
+/* ── Undo Toast ── */
+.toast-undo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.toast-undo-btn {
+  background: rgba(255,255,255,.25);
+  color: #fff;
+  border: none;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.toast-undo-btn:hover {
+  background: rgba(255,255,255,.4);
+}
+
+/* ── Textarea ── */
+textarea.input {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* ── Responsive additions ── */
+@media (max-width: 640px) {
+  .debts-summary,
+  .accounts-summary {
+    flex-direction: column;
+  }
+  .net-worth-cards {
+    grid-template-columns: 1fr;
+  }
+  .shortcuts-grid {
+    grid-template-columns: 1fr;
   }
 }
 

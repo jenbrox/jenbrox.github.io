@@ -943,6 +943,451 @@ const UI = (() => {
   }
 
   /* ═══════════════════════════════════════════════
+     DEBT FORM & LIST
+  ═══════════════════════════════════════════════ */
+
+  function populateDebtForm(debt) {
+    const isEdit = !!debt;
+
+    document.getElementById('debt-modal-title').textContent = isEdit ? 'Edit Debt' : 'Add Debt';
+    document.getElementById('debt-submit-btn').textContent = isEdit ? 'Save Changes' : 'Add Debt';
+    document.getElementById('debt-edit-id').value = isEdit ? debt.id : '';
+
+    document.getElementById('debt-person').value = isEdit ? debt.personName : '';
+    document.getElementById('debt-amount').value = isEdit ? debt.amount : '';
+    document.getElementById('debt-description').value = isEdit ? debt.description : '';
+    document.getElementById('debt-due-date').value = isEdit && debt.dueDate ? debt.dueDate : '';
+
+    const radios = document.querySelectorAll('input[name="debt-direction"]');
+    const direction = isEdit ? debt.direction : 'owed_to_me';
+    radios.forEach(r => { r.checked = r.value === direction; });
+
+    syncCurrencyPrefixes();
+  }
+
+  function getDebtFormValues() {
+    const id = document.getElementById('debt-edit-id').value;
+    const personName = document.getElementById('debt-person').value;
+    const amount = document.getElementById('debt-amount').value;
+    const direction = document.querySelector('input[name="debt-direction"]:checked')?.value || 'owed_to_me';
+    const description = document.getElementById('debt-description').value;
+    const dueDate = document.getElementById('debt-due-date').value;
+
+    const errors = {};
+    if (!personName.trim()) errors.person = 'Person name is required.';
+    if (!Utils.isPositiveNumber(amount)) errors.amount = 'Enter a valid positive amount.';
+
+    const valid = Object.keys(errors).length === 0;
+
+    return {
+      valid,
+      errors,
+      data: { id, personName, amount: parseFloat(amount) || 0, direction, description, dueDate },
+    };
+  }
+
+  function renderDebtsList() {
+    const debts = Debts.getAllDebts();
+    const container = document.getElementById('debts-list');
+    const settings = Store.getSettings();
+
+    if (!container) return;
+
+    if (debts.length === 0) {
+      container.innerHTML = '<p class="empty-state">No debts tracked yet. Click "Add Debt" to start tracking.</p>';
+      return;
+    }
+
+    container.innerHTML = debts.map(debt => {
+      const amount = Utils.formatCurrency(debt.amount, settings);
+      const settledAmount = debt.settledAmount || 0;
+      const pct = debt.amount > 0 ? Utils.clamp((settledAmount / debt.amount) * 100, 0, 100) : 0;
+      const isSettled = pct >= 100;
+      const directionLabel = debt.direction === 'owed_to_me' ? 'They owe me' : 'I owe';
+      const directionClass = debt.direction === 'owed_to_me' ? 'badge--income' : 'badge--expense';
+      const dueDateStr = debt.dueDate ? Utils.formatDate(debt.dueDate, settings.dateFormat) : '';
+
+      return `
+        <div class="debt-card ${isSettled ? 'debt-card--settled' : ''}">
+          <div class="debt-card__header">
+            <span class="debt-card__person">${escapeHtml(debt.personName)}</span>
+            <span class="badge ${directionClass}">${directionLabel}</span>
+          </div>
+          <div class="debt-card__amount">${amount}</div>
+          ${debt.description ? `<div class="debt-card__desc">${escapeHtml(debt.description)}</div>` : ''}
+          ${dueDateStr ? `<div class="debt-card__due">Due: ${escapeHtml(dueDateStr)}</div>` : ''}
+          <div class="debt-card__progress">
+            <span>${Utils.formatCurrency(settledAmount, settings)} / ${amount} settled</span>
+            <div class="progress-bar">
+              <div class="progress-bar__fill ${isSettled ? 'progress-bar__fill--complete' : ''}" style="width:${pct}%"></div>
+            </div>
+          </div>
+          <div class="debt-card__actions">
+            ${!isSettled ? `
+            <button class="btn btn-secondary btn-sm" data-settle-debt="${escapeHtml(debt.id)}">Settle</button>` : ''}
+            <button class="btn btn-ghost btn-icon" data-edit-debt="${escapeHtml(debt.id)}" aria-label="Edit" title="Edit">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M11.5 1.5l2 2-9 9H2.5v-2l9-9z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="btn btn-ghost btn-icon" data-delete-debt="${escapeHtml(debt.id)}" aria-label="Delete" title="Delete" style="color:var(--color-expense)">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M3 4h9M6 4V2.5h3V4M5.5 4v7.5h4V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderDebtsSummary() {
+    const container = document.getElementById('debts-summary');
+    if (!container) return;
+
+    const summary = Debts.getSummary();
+    const settings = Store.getSettings();
+
+    container.innerHTML = `
+      <div class="summary-cards">
+        <div class="summary-card">
+          <span class="summary-card__label">Owed to Me</span>
+          <span class="summary-card__value" style="color:var(--color-income)">${Utils.formatCurrency(summary.owedToMe, settings)}</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-card__label">I Owe</span>
+          <span class="summary-card__value" style="color:var(--color-expense)">${Utils.formatCurrency(summary.iOwe, settings)}</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-card__label">Net</span>
+          <span class="summary-card__value" style="color:${summary.net >= 0 ? 'var(--color-income)' : 'var(--color-expense)'}">${summary.net >= 0 ? '+' : ''}${Utils.formatCurrency(summary.net, settings)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  /* ═══════════════════════════════════════════════
+     WISHLIST FORM & LIST
+  ═══════════════════════════════════════════════ */
+
+  function populateWishForm(item) {
+    const isEdit = !!item;
+
+    document.getElementById('wish-modal-title').textContent = isEdit ? 'Edit Wish' : 'Add Wish';
+    document.getElementById('wish-submit-btn').textContent = isEdit ? 'Save Changes' : 'Add Wish';
+    document.getElementById('wish-edit-id').value = isEdit ? item.id : '';
+
+    document.getElementById('wish-name').value = isEdit ? item.name : '';
+    document.getElementById('wish-price').value = isEdit ? item.price : '';
+    document.getElementById('wish-url').value = isEdit && item.url ? item.url : '';
+    document.getElementById('wish-notes').value = isEdit && item.notes ? item.notes : '';
+
+    const priorityEl = document.getElementById('wish-priority');
+    if (priorityEl) priorityEl.value = isEdit ? item.priority : 'medium';
+
+    syncCurrencyPrefixes();
+  }
+
+  function getWishFormValues() {
+    const id = document.getElementById('wish-edit-id').value;
+    const name = document.getElementById('wish-name').value;
+    const price = document.getElementById('wish-price').value;
+    const priority = document.getElementById('wish-priority').value;
+    const url = document.getElementById('wish-url').value;
+    const notes = document.getElementById('wish-notes').value;
+
+    const errors = {};
+    if (!name.trim()) errors.name = 'Item name is required.';
+
+    const valid = Object.keys(errors).length === 0;
+
+    return {
+      valid,
+      errors,
+      data: { id, name, price: parseFloat(price) || 0, priority, url, notes },
+    };
+  }
+
+  function renderWishlistGrid() {
+    const items = Wishlist.getAllItems();
+    const container = document.getElementById('wishlist-grid');
+    const settings = Store.getSettings();
+
+    if (!container) return;
+
+    if (items.length === 0) {
+      container.innerHTML = '<p class="empty-state">No wishlist items yet. Click "Add Wish" to start your list!</p>';
+      return;
+    }
+
+    const priorityColors = { high: 'var(--color-expense)', medium: '#f59e0b', low: 'var(--color-income)' };
+
+    container.innerHTML = items.map(item => {
+      const purchased = !!item.purchased;
+      const priceStr = item.price > 0 ? Utils.formatCurrency(item.price, settings) : '';
+      const priorityColor = priorityColors[item.priority] || priorityColors.medium;
+      const priorityLabel = item.priority ? item.priority.charAt(0).toUpperCase() + item.priority.slice(1) : 'Medium';
+
+      return `
+        <div class="wish-card ${purchased ? 'wish-card--purchased' : ''}">
+          <div class="wish-card__header">
+            <span class="wish-card__name">${escapeHtml(item.name)}</span>
+            <span class="badge" style="background:${priorityColor}20;color:${priorityColor}">${escapeHtml(priorityLabel)}</span>
+          </div>
+          ${priceStr ? `<div class="wish-card__price">${priceStr}</div>` : ''}
+          ${item.url ? `<a class="wish-card__link" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">View Link</a>` : ''}
+          ${item.notes ? `<div class="wish-card__notes">${escapeHtml(item.notes)}</div>` : ''}
+          <div class="wish-card__actions">
+            <button class="btn btn-secondary btn-sm" data-toggle-wish="${escapeHtml(item.id)}">${purchased ? 'Unmark' : 'Purchased'}</button>
+            <button class="btn btn-ghost btn-icon" data-edit-wish="${escapeHtml(item.id)}" aria-label="Edit" title="Edit">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M11.5 1.5l2 2-9 9H2.5v-2l9-9z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="btn btn-ghost btn-icon" data-delete-wish="${escapeHtml(item.id)}" aria-label="Delete" title="Delete" style="color:var(--color-expense)">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M3 4h9M6 4V2.5h3V4M5.5 4v7.5h4V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderWishlistTotal() {
+    const container = document.getElementById('wishlist-total');
+    if (!container) return;
+
+    const total = Wishlist.getTotalCost();
+    const settings = Store.getSettings();
+    container.textContent = Utils.formatCurrency(total, settings);
+  }
+
+  /* ═══════════════════════════════════════════════
+     ACCOUNT FORM & LIST
+  ═══════════════════════════════════════════════ */
+
+  function populateAccountForm(account) {
+    const isEdit = !!account;
+
+    document.getElementById('acct-modal-title').textContent = isEdit ? 'Edit Account' : 'Add Account';
+    document.getElementById('acct-submit-btn').textContent = isEdit ? 'Save Changes' : 'Add Account';
+    document.getElementById('acct-edit-id').value = isEdit ? account.id : '';
+
+    document.getElementById('acct-name').value = isEdit ? account.name : '';
+    document.getElementById('acct-balance').value = isEdit ? account.balance : '';
+
+    const typeEl = document.getElementById('acct-type');
+    if (typeEl) typeEl.value = isEdit ? account.accountType : 'checking';
+
+    renderAccountColorPicker(isEdit ? account.color : null);
+    syncCurrencyPrefixes();
+  }
+
+  function renderAccountColorPicker(selectedColor) {
+    const colors = Store.getPresetColors();
+    const picker = document.getElementById('acct-color-picker');
+    if (!picker) return;
+
+    const current = selectedColor || colors[0];
+    picker.innerHTML = '';
+
+    colors.forEach(color => {
+      const label = document.createElement('label');
+      label.className = 'color-swatch-label';
+      label.title = color;
+      label.style.color = color;
+
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'acct-color';
+      input.value = color;
+      input.checked = color === current;
+
+      const swatch = document.createElement('span');
+      swatch.className = 'color-swatch';
+      swatch.style.background = color;
+
+      label.appendChild(input);
+      label.appendChild(swatch);
+      picker.appendChild(label);
+    });
+  }
+
+  function getAccountFormValues() {
+    const id = document.getElementById('acct-edit-id').value;
+    const name = document.getElementById('acct-name').value;
+    const accountType = document.getElementById('acct-type').value;
+    const balance = document.getElementById('acct-balance').value;
+    const color = document.querySelector('input[name="acct-color"]:checked')?.value || '';
+
+    const errors = {};
+    if (!name.trim()) errors.name = 'Account name is required.';
+
+    const valid = Object.keys(errors).length === 0;
+
+    return {
+      valid,
+      errors,
+      data: { id, name, accountType, balance: parseFloat(balance) || 0, color },
+    };
+  }
+
+  function renderAccountsGrid() {
+    const accounts = Accounts.getAllAccounts();
+    const container = document.getElementById('accounts-grid');
+    const settings = Store.getSettings();
+
+    if (!container) return;
+
+    if (accounts.length === 0) {
+      container.innerHTML = '<p class="empty-state">No accounts yet. Click "Add Account" to track your balances.</p>';
+      return;
+    }
+
+    container.innerHTML = accounts.map(acct => {
+      const balanceStr = Utils.formatCurrency(Math.abs(acct.balance), settings);
+      const balanceSign = acct.balance >= 0 ? '' : '-';
+      const typeLabel = acct.accountType ? acct.accountType.charAt(0).toUpperCase() + acct.accountType.slice(1) : '';
+
+      return `
+        <div class="account-card">
+          <div class="account-card__header">
+            <span class="account-card__color" style="background:${escapeHtml(acct.color || '#6C63FF')}"></span>
+            <span class="account-card__name">${escapeHtml(acct.name)}</span>
+            <span class="badge">${escapeHtml(typeLabel)}</span>
+          </div>
+          <div class="account-card__balance">${balanceSign}${balanceStr}</div>
+          <div class="account-card__actions">
+            <button class="btn btn-ghost btn-icon" data-edit-acct="${escapeHtml(acct.id)}" aria-label="Edit" title="Edit">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M11.5 1.5l2 2-9 9H2.5v-2l9-9z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="btn btn-ghost btn-icon" data-delete-acct="${escapeHtml(acct.id)}" aria-label="Delete" title="Delete" style="color:var(--color-expense)">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M3 4h9M6 4V2.5h3V4M5.5 4v7.5h4V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderAccountsSummary() {
+    const container = document.getElementById('accounts-summary');
+    if (!container) return;
+
+    const netWorth = Accounts.getNetWorth();
+    const settings = Store.getSettings();
+
+    container.innerHTML = `
+      <div class="summary-cards">
+        <div class="summary-card">
+          <span class="summary-card__label">Assets</span>
+          <span class="summary-card__value" style="color:var(--color-income)">${Utils.formatCurrency(netWorth.assets, settings)}</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-card__label">Liabilities</span>
+          <span class="summary-card__value" style="color:var(--color-expense)">${Utils.formatCurrency(netWorth.liabilities, settings)}</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-card__label">Net Worth</span>
+          <span class="summary-card__value" style="color:${netWorth.netWorth >= 0 ? 'var(--color-income)' : 'var(--color-expense)'}">${netWorth.netWorth >= 0 ? '' : '-'}${Utils.formatCurrency(Math.abs(netWorth.netWorth), settings)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function populateTransferDropdowns() {
+    const accounts = Accounts.getAllAccounts();
+    const fromSelect = document.getElementById('transfer-from');
+    const toSelect = document.getElementById('transfer-to');
+
+    if (!fromSelect || !toSelect) return;
+
+    [fromSelect, toSelect].forEach(select => {
+      select.innerHTML = '<option value="" disabled selected>Select account…</option>';
+      accounts.forEach(acct => {
+        const opt = document.createElement('option');
+        opt.value = acct.id;
+        opt.textContent = acct.name;
+        select.appendChild(opt);
+      });
+    });
+  }
+
+  /* ═══════════════════════════════════════════════
+     UNDO TOAST
+  ═══════════════════════════════════════════════ */
+
+  function showUndoToast(message, undoCallback) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = 'toast toast--info';
+    toast.innerHTML = `
+      <span>${escapeHtml(message)}</span>
+      <button class="btn btn-ghost btn-sm toast__undo-btn">Undo</button>
+    `;
+
+    const undoBtn = toast.querySelector('.toast__undo-btn');
+    let dismissed = false;
+
+    function dismiss() {
+      if (dismissed) return;
+      dismissed = true;
+      toast.classList.add('toast--out');
+      toast.addEventListener('animationend', () => toast.remove(), { once: true });
+    }
+
+    undoBtn.addEventListener('click', () => {
+      if (!dismissed && typeof undoCallback === 'function') {
+        undoCallback();
+      }
+      dismiss();
+    }, { once: true });
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      dismiss();
+    }, 5000);
+  }
+
+  /* ═══════════════════════════════════════════════
+     NET WORTH CARDS (DASHBOARD)
+  ═══════════════════════════════════════════════ */
+
+  function renderNetWorthCards() {
+    const container = document.getElementById('net-worth-cards');
+    const summaryEl = document.getElementById('net-worth-summary');
+
+    if (!container) return;
+
+    const accounts = Accounts.getAllAccounts();
+
+    if (accounts.length === 0) {
+      if (summaryEl) summaryEl.hidden = true;
+      container.innerHTML = '';
+      return;
+    }
+
+    if (summaryEl) summaryEl.hidden = false;
+
+    const netWorth = Accounts.getNetWorth();
+    const settings = Store.getSettings();
+
+    container.innerHTML = `
+      <div class="summary-cards">
+        <div class="summary-card">
+          <span class="summary-card__label">Assets</span>
+          <span class="summary-card__value" style="color:var(--color-income)">${Utils.formatCurrency(netWorth.assets, settings)}</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-card__label">Liabilities</span>
+          <span class="summary-card__value" style="color:var(--color-expense)">${Utils.formatCurrency(netWorth.liabilities, settings)}</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-card__label">Net Worth</span>
+          <span class="summary-card__value" style="color:${netWorth.netWorth >= 0 ? 'var(--color-income)' : 'var(--color-expense)'}">${netWorth.netWorth >= 0 ? '' : '-'}${Utils.formatCurrency(Math.abs(netWorth.netWorth), settings)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  /* ═══════════════════════════════════════════════
      PUBLIC API
   ═══════════════════════════════════════════════ */
 
@@ -976,5 +1421,26 @@ const UI = (() => {
     loadSettingsForm,
     getSettingsFormValues,
     escapeHtml,
+    // Debts
+    populateDebtForm,
+    getDebtFormValues,
+    renderDebtsList,
+    renderDebtsSummary,
+    // Wishlist
+    populateWishForm,
+    getWishFormValues,
+    renderWishlistGrid,
+    renderWishlistTotal,
+    // Accounts
+    populateAccountForm,
+    renderAccountColorPicker,
+    getAccountFormValues,
+    renderAccountsGrid,
+    renderAccountsSummary,
+    populateTransferDropdowns,
+    // Undo toast
+    showUndoToast,
+    // Net worth (dashboard)
+    renderNetWorthCards,
   };
 })();

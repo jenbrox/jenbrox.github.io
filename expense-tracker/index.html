@@ -4,7 +4,30 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Jentrak - Expense Tracker</title>
+  <meta name="description" content="Track your expenses, budgets, debts, and savings goals with Jentrak. Free, private, and works offline.">
+
+  <!-- Open Graph / Social Preview -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://jentrak.com/">
+  <meta property="og:title" content="Jentrak - Smart Expense Tracker">
+  <meta property="og:description" content="Track expenses, budgets, debts, savings goals, and more. Free, private, works offline.">
+  <meta property="og:image" content="https://jentrak.com/og-image.png">
+  <meta property="og:site_name" content="Jentrak">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Jentrak - Smart Expense Tracker">
+  <meta name="twitter:description" content="Track expenses, budgets, debts, savings goals, and more. Free, private, works offline.">
+  <meta name="twitter:image" content="https://jentrak.com/og-image.png">
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#6C63FF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="apple-touch-icon" href="./favicon.svg">
   <link rel="stylesheet" href="./css/main.css">
   <link rel="stylesheet" href="./css/components.css">
   <link rel="stylesheet" href="./css/charts.css">
@@ -28,6 +51,9 @@
         <a href="#categories" class="nav-link" data-nav="categories">Categories</a>
         <a href="#recurring" class="nav-link" data-nav="recurring">Recurring</a>
         <a href="#goals" class="nav-link" data-nav="goals">Goals</a>
+        <a href="#debts" class="nav-link" data-nav="debts">Debts</a>
+        <a href="#wishlist" class="nav-link" data-nav="wishlist">Wishlist</a>
+        <a href="#accounts" class="nav-link" data-nav="accounts">Accounts</a>
         <a href="#settings" class="nav-link" data-nav="settings">Settings</a>
       </nav>
       <button class="btn btn-ghost btn-icon" id="btn-dark-mode" aria-label="Toggle dark mode" title="Toggle dark mode">
@@ -102,8 +128,21 @@
         </div>
 
         <div class="form-group">
+          <label class="form-label" for="txn-notes">Notes</label>
+          <textarea id="txn-notes" class="input" rows="2" maxlength="500" placeholder="Additional notes..."></textarea>
+        </div>
+
+        <div class="form-group">
           <label class="form-label" for="txn-tags">Tags <span class="form-hint">Comma-separated, e.g. groceries, weekly</span></label>
           <input type="text" id="txn-tags" class="input" maxlength="200" placeholder="e.g. groceries, weekly, online">
+        </div>
+
+        <div id="duplicate-warning" class="warning-banner warning-banner--warning" hidden>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 2L1 14h14L8 2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+            <path d="M8 6v4M8 11.5v.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+          <span>A similar transaction already exists for this date and amount.</span>
         </div>
 
         <div class="side-panel__actions">
@@ -184,18 +223,50 @@
         </div>
       </div>
 
-      <div class="chart-card chart-card--full">
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-card__header">
+            <h2 class="chart-title">Monthly Spending Trend</h2>
+            <span class="chart-subtitle">Last 6 months</span>
+          </div>
+          <div class="chart-wrapper chart-wrapper--tall">
+            <canvas id="chart-trend-line" aria-label="Monthly spending trend line chart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card__header">
+            <h2 class="chart-title">Spending Heatmap</h2>
+            <span class="chart-subtitle" id="heatmap-month-label"></span>
+          </div>
+          <div class="chart-wrapper chart-wrapper--tall">
+            <canvas id="chart-heatmap" aria-label="Daily spending heatmap"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cash Flow Forecast -->
+      <div class="chart-card chart-card--full" id="forecast-card">
         <div class="chart-card__header">
-          <h2 class="chart-title">Monthly Spending Trend</h2>
-          <span class="chart-subtitle">Last 6 months</span>
+          <h2 class="chart-title">Cash Flow Forecast</h2>
+          <span class="chart-subtitle">Next 3 months (projected)</span>
         </div>
         <div class="chart-wrapper chart-wrapper--tall">
-          <canvas id="chart-trend-line" aria-label="Monthly spending trend line chart"></canvas>
+          <canvas id="chart-forecast" aria-label="Cash flow forecast chart"></canvas>
         </div>
       </div>
 
       <!-- Top Spending Insights -->
       <div class="insights-grid" id="insights-grid"></div>
+
+      <!-- Net Worth Summary (from Accounts) -->
+      <div class="net-worth-summary" id="net-worth-summary" hidden>
+        <div class="chart-card">
+          <div class="chart-card__header">
+            <h2 class="chart-title">Net Worth</h2>
+          </div>
+          <div class="net-worth-cards" id="net-worth-cards"></div>
+        </div>
+      </div>
 
       <!-- Year-over-Year Comparison -->
       <div class="chart-card chart-card--full" id="yoy-chart-card" style="display:none;">
@@ -331,6 +402,65 @@
       </div>
     </section>
 
+    <!-- DEBTS -->
+    <section id="debts" class="section" hidden aria-label="Debt Tracker">
+      <div class="section-header">
+        <h1 class="section-title">Debt Tracker</h1>
+        <button class="btn btn-primary" id="btn-add-debt">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          Add Debt
+        </button>
+      </div>
+      <div class="debts-summary" id="debts-summary"></div>
+      <div class="debts-list" id="debts-list">
+        <p class="empty-state">No debts tracked yet.</p>
+      </div>
+    </section>
+
+    <!-- WISHLIST -->
+    <section id="wishlist" class="section" hidden aria-label="Wishlist">
+      <div class="section-header">
+        <h1 class="section-title">Wishlist</h1>
+        <button class="btn btn-primary" id="btn-add-wish">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          Add Item
+        </button>
+      </div>
+      <div class="wishlist-total" id="wishlist-total"></div>
+      <div class="wishlist-grid" id="wishlist-grid">
+        <p class="empty-state">Your wishlist is empty.</p>
+      </div>
+    </section>
+
+    <!-- ACCOUNTS -->
+    <section id="accounts" class="section" hidden aria-label="Accounts">
+      <div class="section-header">
+        <h1 class="section-title">Accounts & Net Worth</h1>
+        <div style="display:flex;gap:var(--space-sm);">
+          <button class="btn btn-secondary" id="btn-transfer">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M2 5h12M10 2l3 3-3 3M14 11H2M6 14l-3-3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Transfer
+          </button>
+          <button class="btn btn-primary" id="btn-add-account">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Add Account
+          </button>
+        </div>
+      </div>
+      <div class="accounts-summary" id="accounts-summary"></div>
+      <div class="accounts-grid" id="accounts-grid">
+        <p class="empty-state">No accounts added yet.</p>
+      </div>
+    </section>
+
     <!-- SETTINGS -->
     <section id="settings" class="section" hidden aria-label="Settings">
       <div class="section-header">
@@ -363,6 +493,16 @@
                 <option value="YYYY-MM-DD">YYYY-MM-DD</option>
               </select>
             </div>
+            <div class="form-group">
+              <label class="form-label">Accent Color</label>
+              <div class="color-picker" id="accent-color-picker" role="group" aria-label="Accent color"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" id="setting-notifications" style="width:auto;">
+                Enable budget notifications
+              </label>
+            </div>
             <div class="form-actions">
               <button type="submit" class="btn btn-primary">Save Settings</button>
             </div>
@@ -386,7 +526,7 @@
             <div class="data-action-item">
               <div>
                 <div class="data-action-title">Import Data</div>
-                <div class="data-action-desc">Restore from a JSON, CSV, or Excel file. This overwrites current data.</div>
+                <div class="data-action-desc">Restore from a JSON, CSV, or Excel file. CSV imports auto-categorize by merchant name.</div>
               </div>
               <label class="btn btn-secondary" for="btn-import-file">
                 Import File
@@ -409,6 +549,20 @@
             </div>
           </div>
         </div>
+
+        <div class="settings-card" style="grid-column: 1 / -1;">
+          <h2 class="settings-card__title">Keyboard Shortcuts</h2>
+          <div class="shortcuts-grid">
+            <div class="shortcut-item"><kbd>N</kbd> <span>New transaction</span></div>
+            <div class="shortcut-item"><kbd>D</kbd> <span>Dashboard</span></div>
+            <div class="shortcut-item"><kbd>T</kbd> <span>Transactions</span></div>
+            <div class="shortcut-item"><kbd>C</kbd> <span>Categories</span></div>
+            <div class="shortcut-item"><kbd>R</kbd> <span>Recurring</span></div>
+            <div class="shortcut-item"><kbd>G</kbd> <span>Goals</span></div>
+            <div class="shortcut-item"><kbd>Esc</kbd> <span>Close panel/modal</span></div>
+            <div class="shortcut-item"><kbd>/</kbd> <span>Search transactions</span></div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -429,19 +583,16 @@
       </div>
       <form id="category-form" novalidate>
         <input type="hidden" id="cat-edit-id">
-
         <div class="form-group">
           <label class="form-label" for="cat-name">Name <span class="required">*</span></label>
           <input type="text" id="cat-name" class="input" maxlength="50" placeholder="e.g. Groceries" required>
           <p class="field-error" id="cat-name-error" hidden></p>
         </div>
-
         <div class="form-group">
           <label class="form-label">Color <span class="required">*</span></label>
           <div class="color-picker" id="color-picker" role="group" aria-label="Category color"></div>
           <p class="field-error" id="cat-color-error" hidden></p>
         </div>
-
         <div class="form-group">
           <label class="form-label" for="cat-budget">
             Monthly Budget
@@ -452,7 +603,6 @@
             <input type="number" id="cat-budget" class="input input--prefixed" min="0" step="0.01" placeholder="e.g. 300">
           </div>
         </div>
-
         <div class="modal-footer">
           <button type="button" class="btn btn-ghost" data-close-modal="category-modal">Cancel</button>
           <button type="submit" class="btn btn-primary" id="cat-submit-btn">Add Category</button>
@@ -472,7 +622,6 @@
       </div>
       <form id="recurring-form" novalidate>
         <input type="hidden" id="rec-edit-id">
-
         <div class="form-row">
           <div class="form-group">
             <label class="form-label" for="rec-type">Type <span class="required">*</span></label>
@@ -496,7 +645,6 @@
             <p class="field-error" id="rec-amount-error" hidden></p>
           </div>
         </div>
-
         <div class="form-row">
           <div class="form-group">
             <label class="form-label" for="rec-category">Category <span class="required">*</span></label>
@@ -512,12 +660,10 @@
             <p class="field-error" id="rec-day-error" hidden></p>
           </div>
         </div>
-
         <div class="form-group">
           <label class="form-label" for="rec-description">Description</label>
           <input type="text" id="rec-description" class="input" maxlength="200" placeholder="e.g. Netflix, Rent, Salary">
         </div>
-
         <div class="form-row">
           <div class="form-group">
             <label class="form-label" for="rec-start-date">Start Date</label>
@@ -531,7 +677,6 @@
             <input type="date" id="rec-end-date" class="input">
           </div>
         </div>
-
         <div class="modal-footer">
           <button type="button" class="btn btn-ghost" data-close-modal="recurring-modal">Cancel</button>
           <button type="submit" class="btn btn-primary" id="rec-submit-btn">Add Recurring</button>
@@ -551,13 +696,11 @@
       </div>
       <form id="goal-form" novalidate>
         <input type="hidden" id="goal-edit-id">
-
         <div class="form-group">
           <label class="form-label" for="goal-name">Goal Name <span class="required">*</span></label>
           <input type="text" id="goal-name" class="input" maxlength="100" placeholder="e.g. Vacation Fund, Emergency Fund" required>
           <p class="field-error" id="goal-name-error" hidden></p>
         </div>
-
         <div class="form-row">
           <div class="form-group">
             <label class="form-label" for="goal-target">Target Amount <span class="required">*</span></label>
@@ -575,7 +718,6 @@
             </div>
           </div>
         </div>
-
         <div class="form-row">
           <div class="form-group">
             <label class="form-label" for="goal-deadline">
@@ -589,7 +731,6 @@
             <div class="color-picker" id="goal-color-picker" role="group" aria-label="Goal color"></div>
           </div>
         </div>
-
         <div class="modal-footer">
           <button type="button" class="btn btn-ghost" data-close-modal="goal-modal">Cancel</button>
           <button type="submit" class="btn btn-primary" id="goal-submit-btn">Add Goal</button>
@@ -624,6 +765,217 @@
     </div>
   </dialog>
 
+  <!-- Debt Modal -->
+  <dialog id="debt-modal" class="modal" aria-labelledby="debt-modal-title">
+    <div class="modal-inner">
+      <div class="modal-header">
+        <h2 class="modal-title" id="debt-modal-title">Add Debt</h2>
+        <button class="btn btn-ghost btn-icon modal-close" data-close-modal="debt-modal" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <form id="debt-form" novalidate>
+        <input type="hidden" id="debt-edit-id">
+        <div class="form-group">
+          <label class="form-label" for="debt-person">Person / Company <span class="required">*</span></label>
+          <input type="text" id="debt-person" class="input" maxlength="100" placeholder="e.g. John, Bank of America" required>
+          <p class="field-error" id="debt-person-error" hidden></p>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="debt-amount">Amount <span class="required">*</span></label>
+            <div class="input-prefix-wrap">
+              <span class="input-prefix">$</span>
+              <input type="number" id="debt-amount" class="input input--prefixed" min="0.01" step="0.01" placeholder="0.00" required>
+            </div>
+            <p class="field-error" id="debt-amount-error" hidden></p>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="debt-direction">Direction <span class="required">*</span></label>
+            <div class="type-toggle" role="group" aria-label="Debt direction">
+              <label class="type-toggle__option">
+                <input type="radio" name="debt-direction" value="owed_to_me" checked>
+                <span>They owe me</span>
+              </label>
+              <label class="type-toggle__option">
+                <input type="radio" name="debt-direction" value="i_owe">
+                <span>I owe them</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="debt-description">Description</label>
+          <input type="text" id="debt-description" class="input" maxlength="200" placeholder="What is this for?">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="debt-due-date">Due Date <span class="form-hint">Optional</span></label>
+          <input type="date" id="debt-due-date" class="input">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-close-modal="debt-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="debt-submit-btn">Add Debt</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Settle Debt Modal -->
+  <dialog id="debt-settle-modal" class="modal modal--sm" aria-labelledby="debt-settle-title">
+    <div class="modal-inner">
+      <div class="modal-header">
+        <h2 class="modal-title" id="debt-settle-title">Settle Debt</h2>
+        <button class="btn btn-ghost btn-icon modal-close" data-close-modal="debt-settle-modal" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <form id="debt-settle-form" novalidate>
+        <input type="hidden" id="debt-settle-id">
+        <div class="form-group">
+          <label class="form-label" for="debt-settle-amount">Amount to Settle <span class="required">*</span></label>
+          <div class="input-prefix-wrap">
+            <span class="input-prefix">$</span>
+            <input type="number" id="debt-settle-amount" class="input input--prefixed" min="0.01" step="0.01" placeholder="0.00" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-close-modal="debt-settle-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Settle</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Wishlist Modal -->
+  <dialog id="wish-modal" class="modal" aria-labelledby="wish-modal-title">
+    <div class="modal-inner">
+      <div class="modal-header">
+        <h2 class="modal-title" id="wish-modal-title">Add Wishlist Item</h2>
+        <button class="btn btn-ghost btn-icon modal-close" data-close-modal="wish-modal" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <form id="wish-form" novalidate>
+        <input type="hidden" id="wish-edit-id">
+        <div class="form-group">
+          <label class="form-label" for="wish-name">Item Name <span class="required">*</span></label>
+          <input type="text" id="wish-name" class="input" maxlength="100" placeholder="e.g. AirPods Pro" required>
+          <p class="field-error" id="wish-name-error" hidden></p>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="wish-price">Price <span class="form-hint">Optional</span></label>
+            <div class="input-prefix-wrap">
+              <span class="input-prefix">$</span>
+              <input type="number" id="wish-price" class="input input--prefixed" min="0.01" step="0.01" placeholder="0.00">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="wish-priority">Priority</label>
+            <select id="wish-priority" class="select">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="wish-url">Link <span class="form-hint">Optional URL</span></label>
+          <input type="url" id="wish-url" class="input" maxlength="500" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="wish-notes">Notes</label>
+          <textarea id="wish-notes" class="input" rows="2" maxlength="300" placeholder="Any notes..."></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-close-modal="wish-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="wish-submit-btn">Add Item</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Account Modal -->
+  <dialog id="account-modal" class="modal" aria-labelledby="acct-modal-title">
+    <div class="modal-inner">
+      <div class="modal-header">
+        <h2 class="modal-title" id="acct-modal-title">Add Account</h2>
+        <button class="btn btn-ghost btn-icon modal-close" data-close-modal="account-modal" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <form id="account-form" novalidate>
+        <input type="hidden" id="acct-edit-id">
+        <div class="form-group">
+          <label class="form-label" for="acct-name">Account Name <span class="required">*</span></label>
+          <input type="text" id="acct-name" class="input" maxlength="100" placeholder="e.g. Chase Checking" required>
+          <p class="field-error" id="acct-name-error" hidden></p>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="acct-type">Type <span class="required">*</span></label>
+            <select id="acct-type" class="select" required>
+              <option value="checking">Checking</option>
+              <option value="savings">Savings</option>
+              <option value="credit">Credit Card</option>
+              <option value="cash">Cash</option>
+              <option value="investment">Investment</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="acct-balance">Current Balance</label>
+            <div class="input-prefix-wrap">
+              <span class="input-prefix">$</span>
+              <input type="number" id="acct-balance" class="input input--prefixed" step="0.01" placeholder="0.00">
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Color</label>
+          <div class="color-picker" id="acct-color-picker" role="group" aria-label="Account color"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-close-modal="account-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="acct-submit-btn">Add Account</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Transfer Modal -->
+  <dialog id="transfer-modal" class="modal modal--sm" aria-labelledby="transfer-title">
+    <div class="modal-inner">
+      <div class="modal-header">
+        <h2 class="modal-title" id="transfer-title">Transfer Between Accounts</h2>
+        <button class="btn btn-ghost btn-icon modal-close" data-close-modal="transfer-modal" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <form id="transfer-form" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="transfer-from">From Account</label>
+          <select id="transfer-from" class="select" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="transfer-to">To Account</label>
+          <select id="transfer-to" class="select" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="transfer-amount">Amount</label>
+          <div class="input-prefix-wrap">
+            <span class="input-prefix">$</span>
+            <input type="number" id="transfer-amount" class="input input--prefixed" min="0.01" step="0.01" placeholder="0.00" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-close-modal="transfer-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Transfer</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
   <!-- Confirm Modal -->
   <dialog id="confirm-modal" class="modal modal--sm" aria-labelledby="confirm-title">
     <div class="modal-inner">
@@ -652,6 +1004,9 @@
   <script src="./js/dashboard.js" defer></script>
   <script src="./js/recurring.js" defer></script>
   <script src="./js/goals.js" defer></script>
+  <script src="./js/debts.js" defer></script>
+  <script src="./js/wishlist.js" defer></script>
+  <script src="./js/accounts.js" defer></script>
   <script src="./js/charts.js" defer></script>
   <script src="./js/app.js" defer></script>
 

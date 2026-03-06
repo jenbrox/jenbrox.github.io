@@ -124,6 +124,11 @@ const Dashboard = (() => {
     const insights = Transactions.getInsights(monthKey);
     UI.renderInsights(insights);
 
+    // Net Worth from Accounts
+    if (typeof Accounts !== 'undefined') {
+      UI.renderNetWorthCards();
+    }
+
     Charts.updateAllCharts(monthKey);
   }
 

@@ -11,7 +11,7 @@ const Store = (() => {
 
   const DB_NAME = 'ExpenseTrackerDB';
   const DB_VERSION = 1;
-  const STORES = ['transactions', 'categories', 'settings', 'recurring', 'goals'];
+  const STORES = ['transactions', 'categories', 'settings', 'recurring', 'goals', 'debts', 'wishlist', 'accounts'];
 
   const LS_KEYS = {
     TRANSACTIONS: 'et_transactions',
@@ -19,6 +19,9 @@ const Store = (() => {
     SETTINGS:     'et_settings',
     RECURRING:    'et_recurring',
     GOALS:        'et_goals',
+    DEBTS:        'et_debts',
+    WISHLIST:     'et_wishlist',
+    ACCOUNTS:     'et_accounts',
   };
 
   // Stable IDs for default categories
@@ -30,6 +33,14 @@ const Store = (() => {
     HEALTH:        'cat_default_health',
     SHOPPING:      'cat_default_shopping',
     UTILITIES:     'cat_default_utilities',
+    INSURANCE:     'cat_default_insurance',
+    EDUCATION:     'cat_default_education',
+    SUBSCRIPTIONS: 'cat_default_subscriptions',
+    PERSONAL_CARE: 'cat_default_personal_care',
+    TRAVEL:        'cat_default_travel',
+    GIFTS:         'cat_default_gifts',
+    PETS:          'cat_default_pets',
+    SAVINGS:       'cat_default_savings',
     OTHER:         'cat_default_other',
   };
 
@@ -51,6 +62,9 @@ const Store = (() => {
     settings:     null,
     recurring:    [],
     goals:        [],
+    debts:        [],
+    wishlist:     [],
+    accounts:     [],
   };
 
   let _db = null;
@@ -166,6 +180,9 @@ const Store = (() => {
     _cache.settings     = loadFromLocalStorage(LS_KEYS.SETTINGS, null);
     _cache.recurring    = loadFromLocalStorage(LS_KEYS.RECURRING, []);
     _cache.goals        = loadFromLocalStorage(LS_KEYS.GOALS, []);
+    _cache.debts        = loadFromLocalStorage(LS_KEYS.DEBTS, []);
+    _cache.wishlist     = loadFromLocalStorage(LS_KEYS.WISHLIST, []);
+    _cache.accounts     = loadFromLocalStorage(LS_KEYS.ACCOUNTS, []);
   }
 
   async function migrateToIndexedDB() {
@@ -245,6 +262,18 @@ const Store = (() => {
     persist('goals', LS_KEYS.GOALS, arr);
   }
 
+  /* ── Debts ── */
+  function getDebts() { return _cache.debts; }
+  function saveDebts(arr) { _cache.debts = arr; persist('debts', LS_KEYS.DEBTS, arr); }
+
+  /* ── Wishlist ── */
+  function getWishlist() { return _cache.wishlist; }
+  function saveWishlist(arr) { _cache.wishlist = arr; persist('wishlist', LS_KEYS.WISHLIST, arr); }
+
+  /* ── Accounts ── */
+  function getAccounts() { return _cache.accounts; }
+  function saveAccounts(arr) { _cache.accounts = arr; persist('accounts', LS_KEYS.ACCOUNTS, arr); }
+
   /* ── Settings ── */
   function getSettings() {
     return _cache.settings || getDefaultSettings();
@@ -268,13 +297,21 @@ const Store = (() => {
   function seedDefaultData() {
     if (getCategories().length === 0) {
       const defaults = [
-        { id: DEFAULT_CATEGORY_IDS.HOUSING,       name: 'Housing',       color: '#6C63FF', monthlyBudget: 1200 },
+        { id: DEFAULT_CATEGORY_IDS.HOUSING,       name: 'Housing',        color: '#6C63FF', monthlyBudget: 1200 },
         { id: DEFAULT_CATEGORY_IDS.FOOD,           name: 'Food & Dining', color: '#22c55e', monthlyBudget: 400  },
         { id: DEFAULT_CATEGORY_IDS.TRANSPORT,      name: 'Transport',     color: '#3b82f6', monthlyBudget: 150  },
         { id: DEFAULT_CATEGORY_IDS.ENTERTAINMENT,  name: 'Entertainment', color: '#ec4899', monthlyBudget: 100  },
         { id: DEFAULT_CATEGORY_IDS.HEALTH,         name: 'Health',        color: '#14b8a6', monthlyBudget: 200  },
         { id: DEFAULT_CATEGORY_IDS.SHOPPING,       name: 'Shopping',      color: '#f97316', monthlyBudget: 200  },
         { id: DEFAULT_CATEGORY_IDS.UTILITIES,      name: 'Utilities',     color: '#f59e0b', monthlyBudget: 150  },
+        { id: DEFAULT_CATEGORY_IDS.INSURANCE,      name: 'Insurance',     color: '#0ea5e9', monthlyBudget: 300  },
+        { id: DEFAULT_CATEGORY_IDS.EDUCATION,      name: 'Education',     color: '#a855f7', monthlyBudget: 200  },
+        { id: DEFAULT_CATEGORY_IDS.SUBSCRIPTIONS,  name: 'Subscriptions', color: '#e11d48', monthlyBudget: 50   },
+        { id: DEFAULT_CATEGORY_IDS.PERSONAL_CARE,  name: 'Personal Care', color: '#f472b6', monthlyBudget: 100  },
+        { id: DEFAULT_CATEGORY_IDS.TRAVEL,         name: 'Travel',        color: '#06b6d4', monthlyBudget: 300  },
+        { id: DEFAULT_CATEGORY_IDS.GIFTS,          name: 'Gifts & Donations', color: '#d946ef', monthlyBudget: 100 },
+        { id: DEFAULT_CATEGORY_IDS.PETS,           name: 'Pets',          color: '#84cc16', monthlyBudget: 100  },
+        { id: DEFAULT_CATEGORY_IDS.SAVINGS,        name: 'Savings & Investments', color: '#10b981', monthlyBudget: 500 },
         { id: DEFAULT_CATEGORY_IDS.OTHER,          name: 'Other',         color: '#8b5cf6', monthlyBudget: null },
       ].map(c => ({ ...c, createdAt: new Date().toISOString() }));
       saveCategories(defaults);
@@ -296,6 +333,9 @@ const Store = (() => {
       et_settings:     getSettings(),
       et_recurring:    getRecurring(),
       et_goals:        getGoals(),
+      et_debts:        getDebts(),
+      et_wishlist:     getWishlist(),
+      et_accounts:     getAccounts(),
       exportedAt:      new Date().toISOString(),
       version:         1,
     }, null, 2);
@@ -314,6 +354,9 @@ const Store = (() => {
       saveSettings(data.et_settings);
       if (Array.isArray(data.et_recurring)) saveRecurring(data.et_recurring);
       if (Array.isArray(data.et_goals)) saveGoals(data.et_goals);
+      if (Array.isArray(data.et_debts)) saveDebts(data.et_debts);
+      if (Array.isArray(data.et_wishlist)) saveWishlist(data.et_wishlist);
+      if (Array.isArray(data.et_accounts)) saveAccounts(data.et_accounts);
       return { success: true };
     } catch (e) {
       return { success: false, error: 'Invalid JSON file.' };
@@ -593,6 +636,9 @@ const Store = (() => {
     _cache.settings = null;
     _cache.recurring = [];
     _cache.goals = [];
+    _cache.debts = [];
+    _cache.wishlist = [];
+    _cache.accounts = [];
 
     // Clear localStorage
     Object.values(LS_KEYS).forEach(key => localStorage.removeItem(key));
@@ -638,5 +684,11 @@ const Store = (() => {
     saveRecurring,
     getGoals,
     saveGoals,
+    getDebts,
+    saveDebts,
+    getWishlist,
+    saveWishlist,
+    getAccounts,
+    saveAccounts,
   };
 })();

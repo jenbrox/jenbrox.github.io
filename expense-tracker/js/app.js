@@ -3,7 +3,7 @@
    Entry point: initializes and wires all modules.
    No business logic lives here.
    Depends on: Utils, Store, Transactions, Categories,
-               UI, Dashboard, Charts
+               UI, Dashboard, Charts, Debts, Wishlist, Accounts
    =================================================== */
 
 'use strict';
@@ -53,6 +53,10 @@ async function init() {
   setupDataHandlers();
   setupMonthNavHandlers();
   setupFilterHandlers();
+  setupDebtHandlers();
+  setupWishlistHandlers();
+  setupAccountHandlers();
+  setupKeyboardShortcuts();
   UI.setupTypeToggleListener();
   UI.setupRecTypeToggleListener();
 
@@ -69,6 +73,11 @@ async function init() {
   // 5. Read initial section from URL hash
   const hash = window.location.hash.replace('#', '') || 'dashboard';
   navigateTo(hash);
+
+  // 6. Register PWA service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
 }
 
 /* ═══════════════════════════════════════════════
@@ -76,7 +85,7 @@ async function init() {
 ═══════════════════════════════════════════════ */
 
 function navigateTo(sectionId) {
-  const valid = ['dashboard', 'transactions', 'categories', 'recurring', 'goals', 'settings'];
+  const valid = ['dashboard', 'transactions', 'categories', 'recurring', 'goals', 'debts', 'wishlist', 'accounts', 'settings'];
   const target = valid.includes(sectionId) ? sectionId : 'dashboard';
 
   UI.showSection(target);
@@ -92,6 +101,12 @@ function navigateTo(sectionId) {
     renderRecurringView();
   } else if (target === 'goals') {
     renderGoalsView();
+  } else if (target === 'debts') {
+    renderDebtsView();
+  } else if (target === 'wishlist') {
+    renderWishlistView();
+  } else if (target === 'accounts') {
+    renderAccountsView();
   } else if (target === 'settings') {
     UI.loadSettingsForm();
   }
@@ -310,6 +325,16 @@ async function handleTransactionSubmit() {
   const { valid, data } = UI.getTransactionFormValues();
   if (!valid) return;
 
+  // Duplicate detection for new transactions
+  const dupeWarning = document.getElementById('duplicate-warning');
+  if (dupeWarning) dupeWarning.hidden = true;
+  if (!data.id && typeof Transactions.findDuplicates === 'function') {
+    const dupes = Transactions.findDuplicates(data);
+    if (dupes && dupes.length > 0) {
+      if (dupeWarning) dupeWarning.hidden = false;
+    }
+  }
+
   let result;
   if (data.id) {
     result = Transactions.updateTransaction(data.id, data);
@@ -339,10 +364,21 @@ async function handleDeleteTransaction(id) {
   const confirmed = await UI.showConfirm('Delete this transaction? This cannot be undone.', 'Delete', 'btn-danger');
   if (!confirmed) return;
 
+  const deletedTxn = Transactions.getTransactionById(id);
   Transactions.deleteTransaction(id);
-  UI.showToast('Transaction deleted.', 'success');
   renderTransactionsView();
   Dashboard.updateDashboard(AppState.dashboardMonth);
+
+  // Undo support: show undo toast if available, otherwise fall back to simple toast
+  if (deletedTxn && typeof UI.showUndoToast === 'function') {
+    UI.showUndoToast('Transaction deleted.', () => {
+      Transactions.addTransaction(deletedTxn);
+      renderTransactionsView();
+      Dashboard.updateDashboard(AppState.dashboardMonth);
+    });
+  } else {
+    UI.showToast('Transaction deleted.', 'success');
+  }
 }
 
 /* ═══════════════════════════════════════════════
@@ -601,6 +637,334 @@ async function handleDeleteGoal(id) {
 }
 
 /* ═══════════════════════════════════════════════
+   DEBTS VIEW & HANDLERS
+═══════════════════════════════════════════════ */
+
+function renderDebtsView() {
+  UI.renderDebtsList();
+  UI.renderDebtsSummary();
+}
+
+function setupDebtHandlers() {
+  // "+ Add Debt" button
+  document.getElementById('btn-add-debt')?.addEventListener('click', () => {
+    UI.populateDebtForm(null);
+    UI.openModal('debt-modal');
+  });
+
+  // Debt form submit
+  document.getElementById('debt-form')?.addEventListener('submit', e => {
+    e.preventDefault();
+    handleDebtSubmit();
+  });
+
+  // Edit / delete / settle via delegation on debts list
+  document.getElementById('debts-list')?.addEventListener('click', e => {
+    const editBtn   = e.target.closest('[data-edit-debt]');
+    const deleteBtn = e.target.closest('[data-delete-debt]');
+    const settleBtn = e.target.closest('[data-settle-debt]');
+
+    if (editBtn) {
+      const debt = Debts.getDebtById(editBtn.dataset.editDebt);
+      if (debt) {
+        UI.populateDebtForm(debt);
+        UI.openModal('debt-modal');
+      }
+    }
+
+    if (deleteBtn) {
+      handleDeleteDebt(deleteBtn.dataset.deleteDebt);
+    }
+
+    if (settleBtn) {
+      handleSettleDebt(settleBtn.dataset.settleDebt);
+    }
+  });
+
+  // Settle form submit
+  document.getElementById('debt-settle-form')?.addEventListener('submit', e => {
+    e.preventDefault();
+    const id     = document.getElementById('debt-settle-id').value;
+    const amount = parseFloat(document.getElementById('debt-settle-amount')?.value);
+
+    if (!Utils.isPositiveNumber(amount)) {
+      UI.showToast('Enter a valid positive amount.', 'error');
+      return;
+    }
+
+    const result = Debts.settleDebt(id, amount);
+    if (!result.success) {
+      UI.showToast(result.errors.join(' '), 'error');
+      return;
+    }
+
+    UI.closeModal('debt-settle-modal');
+    UI.showToast('Payment recorded.', 'success');
+    renderDebtsView();
+  });
+}
+
+async function handleDebtSubmit() {
+  const { valid, data } = UI.getDebtFormValues();
+  if (!valid) return;
+
+  let result;
+  if (data.id) {
+    result = Debts.updateDebt(data.id, data);
+  } else {
+    result = Debts.addDebt(data);
+  }
+
+  if (!result.success) {
+    UI.showToast(result.errors.join(' '), 'error');
+    return;
+  }
+
+  UI.closeModal('debt-modal');
+  UI.showToast(data.id ? 'Debt updated.' : 'Debt added.', 'success');
+  renderDebtsView();
+}
+
+async function handleDeleteDebt(id) {
+  const confirmed = await UI.showConfirm('Delete this debt? This cannot be undone.', 'Delete', 'btn-danger');
+  if (!confirmed) return;
+
+  Debts.deleteDebt(id);
+  UI.showToast('Debt deleted.', 'success');
+  renderDebtsView();
+}
+
+function handleSettleDebt(id) {
+  document.getElementById('debt-settle-id').value = id;
+  if (document.getElementById('debt-settle-amount')) {
+    document.getElementById('debt-settle-amount').value = '';
+  }
+  UI.openModal('debt-settle-modal');
+}
+
+/* ═══════════════════════════════════════════════
+   WISHLIST VIEW & HANDLERS
+═══════════════════════════════════════════════ */
+
+function renderWishlistView() {
+  UI.renderWishlistGrid();
+  UI.renderWishlistTotal();
+}
+
+function setupWishlistHandlers() {
+  // "+ Add Wish" button
+  document.getElementById('btn-add-wish')?.addEventListener('click', () => {
+    UI.populateWishForm(null);
+    UI.openModal('wish-modal');
+  });
+
+  // Wish form submit
+  document.getElementById('wish-form')?.addEventListener('submit', e => {
+    e.preventDefault();
+    handleWishSubmit();
+  });
+
+  // Edit / delete / toggle via delegation on wishlist grid
+  document.getElementById('wishlist-grid')?.addEventListener('click', e => {
+    const editBtn   = e.target.closest('[data-edit-wish]');
+    const deleteBtn = e.target.closest('[data-delete-wish]');
+    const toggleBtn = e.target.closest('[data-toggle-wish]');
+
+    if (editBtn) {
+      const item = Wishlist.getItemById(editBtn.dataset.editWish);
+      if (item) {
+        UI.populateWishForm(item);
+        UI.openModal('wish-modal');
+      }
+    }
+
+    if (deleteBtn) {
+      handleDeleteWish(deleteBtn.dataset.deleteWish);
+    }
+
+    if (toggleBtn) {
+      Wishlist.togglePurchased(toggleBtn.dataset.toggleWish);
+      renderWishlistView();
+    }
+  });
+}
+
+async function handleWishSubmit() {
+  const { valid, data } = UI.getWishFormValues();
+  if (!valid) return;
+
+  let result;
+  if (data.id) {
+    result = Wishlist.updateItem(data.id, data);
+  } else {
+    result = Wishlist.addItem(data);
+  }
+
+  if (!result.success) {
+    UI.showToast(result.errors.join(' '), 'error');
+    return;
+  }
+
+  UI.closeModal('wish-modal');
+  UI.showToast(data.id ? 'Wish updated.' : 'Wish added.', 'success');
+  renderWishlistView();
+}
+
+async function handleDeleteWish(id) {
+  const confirmed = await UI.showConfirm('Delete this wishlist item? This cannot be undone.', 'Delete', 'btn-danger');
+  if (!confirmed) return;
+
+  Wishlist.deleteItem(id);
+  UI.showToast('Wishlist item deleted.', 'success');
+  renderWishlistView();
+}
+
+/* ═══════════════════════════════════════════════
+   ACCOUNTS VIEW & HANDLERS
+═══════════════════════════════════════════════ */
+
+function renderAccountsView() {
+  UI.renderAccountsGrid();
+  UI.renderAccountsSummary();
+}
+
+function setupAccountHandlers() {
+  // "+ Add Account" button
+  document.getElementById('btn-add-account')?.addEventListener('click', () => {
+    UI.populateAccountForm(null);
+    UI.openModal('account-modal');
+  });
+
+  // Account form submit
+  document.getElementById('account-form')?.addEventListener('submit', e => {
+    e.preventDefault();
+    handleAccountSubmit();
+  });
+
+  // Edit / delete via delegation on accounts grid
+  document.getElementById('accounts-grid')?.addEventListener('click', e => {
+    const editBtn   = e.target.closest('[data-edit-acct]');
+    const deleteBtn = e.target.closest('[data-delete-acct]');
+
+    if (editBtn) {
+      const acct = Accounts.getAccountById(editBtn.dataset.editAcct);
+      if (acct) {
+        UI.populateAccountForm(acct);
+        UI.openModal('account-modal');
+      }
+    }
+
+    if (deleteBtn) {
+      handleDeleteAccount(deleteBtn.dataset.deleteAcct);
+    }
+  });
+
+  // Transfer button
+  document.getElementById('btn-transfer')?.addEventListener('click', () => {
+    UI.populateTransferDropdowns();
+    UI.openModal('transfer-modal');
+  });
+
+  // Transfer form submit
+  document.getElementById('transfer-form')?.addEventListener('submit', e => {
+    e.preventDefault();
+    const fromId = document.getElementById('transfer-from')?.value;
+    const toId   = document.getElementById('transfer-to')?.value;
+    const amount = parseFloat(document.getElementById('transfer-amount')?.value);
+
+    if (!fromId || !toId || fromId === toId) {
+      UI.showToast('Select two different accounts.', 'error');
+      return;
+    }
+    if (!Utils.isPositiveNumber(amount)) {
+      UI.showToast('Enter a valid positive amount.', 'error');
+      return;
+    }
+
+    const result = Accounts.transfer(fromId, toId, amount);
+    if (!result.success) {
+      UI.showToast(result.errors.join(' '), 'error');
+      return;
+    }
+
+    UI.closeModal('transfer-modal');
+    UI.showToast('Transfer completed.', 'success');
+    renderAccountsView();
+  });
+}
+
+async function handleAccountSubmit() {
+  const { valid, data } = UI.getAccountFormValues();
+  if (!valid) return;
+
+  let result;
+  if (data.id) {
+    result = Accounts.updateAccount(data.id, data);
+  } else {
+    result = Accounts.addAccount(data);
+  }
+
+  if (!result.success) {
+    UI.showToast(result.errors.join(' '), 'error');
+    return;
+  }
+
+  UI.closeModal('account-modal');
+  UI.showToast(data.id ? 'Account updated.' : 'Account added.', 'success');
+  renderAccountsView();
+}
+
+async function handleDeleteAccount(id) {
+  const confirmed = await UI.showConfirm('Delete this account? This cannot be undone.', 'Delete', 'btn-danger');
+  if (!confirmed) return;
+
+  Accounts.deleteAccount(id);
+  UI.showToast('Account deleted.', 'success');
+  renderAccountsView();
+}
+
+/* ═══════════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+═══════════════════════════════════════════════ */
+
+function setupKeyboardShortcuts() {
+  document.addEventListener('keydown', e => {
+    // Skip if user is typing in a form element or a modal is open
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+    if (document.querySelector('dialog[open]')) return;
+
+    switch (e.key) {
+      case 'n':
+        openTransactionPanel();
+        UI.populateTransactionForm(null);
+        break;
+      case 'd':
+        navigateTo('dashboard');
+        break;
+      case 't':
+        navigateTo('transactions');
+        break;
+      case 'c':
+        navigateTo('categories');
+        break;
+      case 'r':
+        navigateTo('recurring');
+        break;
+      case 'g':
+        navigateTo('goals');
+        break;
+      case '/': {
+        e.preventDefault();
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) searchInput.focus();
+        break;
+      }
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════
    SETTINGS HANDLERS
 ═══════════════════════════════════════════════ */
 
@@ -789,4 +1153,7 @@ function refreshAllViews() {
   if (UI.currentSection() === 'categories') renderCategoriesView();
   if (UI.currentSection() === 'recurring') renderRecurringView();
   if (UI.currentSection() === 'goals') renderGoalsView();
+  if (UI.currentSection() === 'debts') renderDebtsView();
+  if (UI.currentSection() === 'wishlist') renderWishlistView();
+  if (UI.currentSection() === 'accounts') renderAccountsView();
 }

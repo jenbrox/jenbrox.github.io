@@ -1,0 +1,18 @@
+{
+  "name": "Jentrak - Expense Tracker",
+  "short_name": "Jentrak",
+  "description": "Track your expenses, budgets, debts, and savings goals",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f1f5f9",
+  "theme_color": "#6C63FF",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

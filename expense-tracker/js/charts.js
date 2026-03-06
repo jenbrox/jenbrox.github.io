@@ -173,6 +173,95 @@ const Charts = (() => {
       );
     }
 
+    // ── Spending Heatmap ──
+    const heatmapCanvas = document.getElementById('chart-heatmap');
+    if (heatmapCanvas) {
+      CHART_INSTANCES.heatmap = new Chart(
+        heatmapCanvas.getContext('2d'),
+        {
+          type: 'bar',
+          data: {
+            labels: [],
+            datasets: [{
+              label: 'Daily Spending',
+              data: [],
+              backgroundColor: [],
+              borderWidth: 0,
+              borderRadius: 4,
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: { label: currencyTooltipCallback },
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { callback: currencyAxisCallback },
+                grid: { color: 'rgba(0,0,0,.05)' },
+              },
+              x: { grid: { display: false } },
+            },
+          },
+        }
+      );
+    }
+
+    // ── Cash Flow Forecast ──
+    const forecastCanvas = document.getElementById('chart-forecast');
+    if (forecastCanvas) {
+      CHART_INSTANCES.forecast = new Chart(
+        forecastCanvas.getContext('2d'),
+        {
+          type: 'bar',
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: 'Projected Income',
+                data: [],
+                backgroundColor: 'rgba(34,197,94,.65)',
+                borderColor: '#22c55e',
+                borderWidth: 1,
+                borderRadius: 4,
+              },
+              {
+                label: 'Projected Expenses',
+                data: [],
+                backgroundColor: 'rgba(239,68,68,.65)',
+                borderColor: '#ef4444',
+                borderWidth: 1,
+                borderRadius: 4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'rect', padding: 16 } },
+              tooltip: {
+                callbacks: { label: currencyTooltipCallback },
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { callback: currencyAxisCallback },
+                grid: { color: 'rgba(0,0,0,.05)' },
+              },
+              x: { grid: { display: false } },
+            },
+          },
+        }
+      );
+    }
+
     // ── Monthly Trend Line ──
     CHART_INSTANCES.line = new Chart(
       document.getElementById('chart-trend-line').getContext('2d'),
@@ -295,11 +384,59 @@ const Charts = (() => {
     chart.update();
   }
 
+  function updateHeatmapChart(monthKey) {
+    const chart = CHART_INSTANCES.heatmap;
+    if (!chart) return;
+
+    const data = Transactions.getSpendingHeatmap(monthKey);
+    const amounts = data.map(d => d.amount);
+    const maxVal = Math.max(...amounts, 1);
+
+    const colors = amounts.map(val => {
+      if (val === 0) return 'rgba(108,99,255,0.05)';
+      const intensity = 0.15 + (val / maxVal) * 0.85;
+      return `rgba(108,99,255,${intensity.toFixed(2)})`;
+    });
+
+    chart.data.labels = data.map(d => d.day);
+    chart.data.datasets[0].data = amounts;
+    chart.data.datasets[0].backgroundColor = colors;
+    chart.update();
+
+    const monthLabel = document.getElementById('heatmap-month-label');
+    if (monthLabel) {
+      const [y, m] = monthKey.split('-');
+      const dt = new Date(Number(y), Number(m) - 1);
+      monthLabel.textContent = dt.toLocaleString('default', { month: 'long', year: 'numeric' });
+    }
+  }
+
+  function updateForecastChart() {
+    const chart = CHART_INSTANCES.forecast;
+    const card = document.getElementById('forecast-card');
+    if (!chart) return;
+
+    const data = Transactions.getCashFlowForecast(3);
+
+    if (!data || data.length === 0) {
+      if (card) card.style.display = 'none';
+      return;
+    }
+
+    if (card) card.style.display = '';
+    chart.data.labels = data.map(d => d.label);
+    chart.data.datasets[0].data = data.map(d => d.projectedIncome);
+    chart.data.datasets[1].data = data.map(d => d.projectedExpenses);
+    chart.update();
+  }
+
   function updateAllCharts(monthKey) {
     updateCategoryPieChart(monthKey);
     updateBudgetBarChart(monthKey);
     updateTrendLineChart(6);
     updateYoYChart();
+    updateHeatmapChart(monthKey);
+    updateForecastChart();
   }
 
   /* ═══════════════════════════════════════════════
@@ -313,5 +450,7 @@ const Charts = (() => {
     updateBudgetBarChart,
     updateTrendLineChart,
     updateYoYChart,
+    updateHeatmapChart,
+    updateForecastChart,
   };
 })();

@@ -302,6 +302,78 @@ const Transactions = (() => {
     Store.saveTransactions(all);
   }
 
+  /* ── Duplicate Detection ── */
+  function findDuplicates(fields) {
+    const all = Store.getTransactions();
+    const amount = parseFloat(fields.amount);
+    const date = fields.date;
+    const catId = fields.categoryId;
+    return all.filter(t =>
+      t.amount === amount &&
+      t.date === date &&
+      t.categoryId === catId &&
+      t.type === fields.type
+    );
+  }
+
+  /* ── Cash Flow Forecast ── */
+  function getCashFlowForecast(months = 3) {
+    const recurring = typeof Recurring !== 'undefined' ? Recurring.getAllRecurring().filter(r => r.isActive) : [];
+    const currentMonth = Utils.getCurrentMonthKey();
+    const forecast = [];
+
+    for (let i = 1; i <= months; i++) {
+      const monthKey = Utils.offsetMonth(currentMonth, i);
+      let projectedIncome = 0, projectedExpenses = 0;
+
+      for (const r of recurring) {
+        if (r.type === 'income') projectedIncome += r.amount;
+        else projectedExpenses += r.amount;
+      }
+
+      // Add average of last 3 months non-recurring spending
+      const pastMonths = [];
+      for (let j = 1; j <= 3; j++) {
+        const pk = Utils.offsetMonth(currentMonth, -j);
+        pastMonths.push(summarizeMonth(pk));
+      }
+      if (pastMonths.length > 0) {
+        const avgExpenses = pastMonths.reduce((s, m) => s + m.expenses, 0) / pastMonths.length;
+        const avgIncome = pastMonths.reduce((s, m) => s + m.income, 0) / pastMonths.length;
+        const recurringExpenseTotal = recurring.filter(r => r.type === 'expense').reduce((s, r) => s + r.amount, 0);
+        const recurringIncomeTotal = recurring.filter(r => r.type === 'income').reduce((s, r) => s + r.amount, 0);
+        projectedExpenses = Math.max(projectedExpenses, avgExpenses);
+        projectedIncome = Math.max(projectedIncome, avgIncome);
+      }
+
+      forecast.push({
+        monthKey,
+        label: Utils.monthLabel(monthKey),
+        projectedIncome,
+        projectedExpenses,
+        projectedNet: projectedIncome - projectedExpenses,
+      });
+    }
+    return forecast;
+  }
+
+  /* ── Spending Heatmap Data ── */
+  function getSpendingHeatmap(monthKey) {
+    const txns = getTransactionsForMonth(monthKey).filter(t => t.type === 'expense');
+    const dayMap = {};
+    for (const t of txns) {
+      const day = parseInt(t.date.split('-')[2], 10);
+      dayMap[day] = (dayMap[day] || 0) + t.amount;
+    }
+    const [y, m] = monthKey.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const data = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      data.push({ day: d, amount: dayMap[d] || 0 });
+    }
+    return data;
+  }
+
   /* ── Public API ── */
   return {
     addTransaction,
@@ -317,5 +389,8 @@ const Transactions = (() => {
     getInsights,
     getCategoriesInUse,
     reassignCategory,
+    findDuplicates,
+    getCashFlowForecast,
+    getSpendingHeatmap,
   };
 })();
